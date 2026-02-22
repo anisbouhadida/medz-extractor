@@ -10,6 +10,8 @@ import logging
 from pathlib import Path
 from typing import Dict, Iterable, List
 
+import pytest
+
 from medz_extractor.cli import process
 
 
@@ -95,8 +97,8 @@ def _build_tabular_rows() -> List[List[object]]:
 
 
 def test_process_logs_key_observability_fields(
-    monkeypatch,
-    caplog,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
     tmp_path: Path,
 ) -> None:
     """Process logs include required fields for trusted diagnostics."""
@@ -114,20 +116,38 @@ def test_process_logs_key_observability_fields(
 
     monkeypatch.setattr(
         "medz_extractor.cli.load_workbook",
-        lambda *_args, **_kwargs: fake_wb,
+        lambda *_args, **_kwargs: fake_wb,  # type: ignore[arg-type]
     )
 
     caplog.set_level(logging.INFO)
     process(input_file=input_file, out=output_dir, delimiter=",")
 
     logs = caplog.text
+
+    # --- Input / output context ---
     assert "Input file:" in logs
+    assert "Output directory:" in logs
+
+    # --- Sheet detection ---
     assert "Detected sheets:" in logs
+
+    # --- Per-sheet processing progress ---
+    assert "Processing sheet" in logs
+
+    # --- Header detection ---
     assert "header row index" in logs
+
+    # --- Row counts ---
     assert "data rows extracted" in logs
+
+    # --- Dropped columns ---
     assert "Dropping 1 entirely-empty column(s): ['EXTRA']" in logs
+
+    # --- Written CSV paths ---
     assert "Wrote 2 data rows to" in logs
     assert "nomenclature.csv" in logs
     assert "non_renouveles.csv" in logs
     assert "retraits.csv" in logs
+
+    # --- Total runtime ---
     assert "Generated 3 CSV file(s) in" in logs
