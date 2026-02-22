@@ -318,11 +318,26 @@ def _assert_row_numbering(
         f"[{fixture_name}/{csv_filename}] No data rows."
     )
 
-    def _to_int(val: str) -> int:
-        return int(float(val.strip()))
+    def _to_int(val: str, row_label: str) -> int:
+        """
+        Convert a CSV cell value to int, with clear context on failure.
 
-    first_val = _to_int(data_rows[0][0])
-    last_val = _to_int(data_rows[-1][0])
+        This wraps the conversion in a try/except so that if the first
+        column unexpectedly contains a non-numeric value, the resulting
+        assertion error clearly identifies the fixture, CSV file, and
+        row position being parsed.
+        """
+        try:
+            return int(float(val.strip()))
+        except (TypeError, ValueError) as exc:
+            raise AssertionError(
+                f"[{fixture_name}/{csv_filename}] "
+                f"Invalid row number in {row_label} row: {val!r}. "
+                "Expected a numeric value starting at 1 and sequential."
+            ) from exc
+
+    first_val = _to_int(data_rows[0][0], "first")
+    last_val = _to_int(data_rows[-1][0], "last")
     expected_last = len(data_rows)
 
     assert first_val == 1, (
