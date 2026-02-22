@@ -43,19 +43,13 @@ def write_csv(
         OSError: If the file cannot be created or written.
     """
     if not headers:
-        raise ValueError(
-            "Cannot write CSV: headers list is empty."
-        )
+        raise ValueError("Cannot write CSV: headers list is empty.")
     if not data_rows:
-        raise ValueError(
-            "Cannot write CSV: data_rows list is empty."
-        )
+        raise ValueError("Cannot write CSV: data_rows list is empty.")
 
     try:
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        with output_path.open(
-            "w", encoding="utf-8", newline=""
-        ) as fh:
+        with output_path.open("w", encoding="utf-8", newline="") as fh:
             writer = csv.writer(
                 fh,
                 delimiter=delimiter,
@@ -64,11 +58,7 @@ def write_csv(
             writer.writerow(headers)
             writer.writerows(data_rows)
     except OSError as exc:
-        raise OSError(
-            f"Failed to write CSV to '{output_path}': {exc}"
-        ) from exc
+        raise OSError(f"Failed to write CSV to '{output_path}': {exc}") from exc
 
-    logger.info(
-        "Wrote %d data rows to '%s'.", len(data_rows), output_path
-    )
+    logger.info("Wrote %d data rows to '%s'.", len(data_rows), output_path)
     return output_path

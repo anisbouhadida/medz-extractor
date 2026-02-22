@@ -95,10 +95,23 @@ class TestIsFooterRow:
         cell contains 'I=370MG/ML' (a concentration value).
         """
         row = (
-            "630", "070/08", "08 C 010", "AMIDOTRIZOATE",
-            "RADIOSELECTAN", "SOL.INJ  I.V.", "I=370MG/ML",
-            "val8", "val9", "val10", "val11", "val12",
-            "val13", "val14", "val15", "val16", "val17",
+            "630",
+            "070/08",
+            "08 C 010",
+            "AMIDOTRIZOATE",
+            "RADIOSELECTAN",
+            "SOL.INJ  I.V.",
+            "I=370MG/ML",
+            "val8",
+            "val9",
+            "val10",
+            "val11",
+            "val12",
+            "val13",
+            "val14",
+            "val15",
+            "val16",
+            "val17",
         )
         assert is_footer_row(row) is False
 
@@ -249,8 +262,8 @@ class TestExtractData:
         rows = [
             ("C1", "C2", "C3"),
             ("a", "b", "c"),
-            (None, None, None),   # blank row inside data
-            ("d", "e", "f"),     # tabular row after blank
+            (None, None, None),  # blank row inside data
+            ("d", "e", "f"),  # tabular row after blank
             ("g", "h", "i"),
         ]
         _, data = extract_data(rows, header_index=0)
@@ -270,9 +283,9 @@ class TestExtractData:
         """
         rows = [
             ("C1", "C2"),
-            ("Fabricant", None),   # sparse, but no "F="
-            ("Info", None),       # sparse, but no "I="
-            ("NB", None),         # sparse, no colon after NB
+            ("Fabricant", None),  # sparse, but no "F="
+            ("Info", None),  # sparse, but no "I="
+            ("NB", None),  # sparse, no colon after NB
         ]
         _, data = extract_data(rows, header_index=0)
         assert len(data) == 3

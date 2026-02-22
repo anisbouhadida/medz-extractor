@@ -65,28 +65,18 @@ def drop_empty_columns(
     """
     empty_indices = find_empty_columns(headers, data_rows)
 
-    dropped_headers = [
-        headers[i] for i in sorted(empty_indices)
-    ]
+    dropped_headers = [headers[i] for i in sorted(empty_indices)]
     logger.info(
         "Dropping %d entirely-empty column(s): %s.",
         len(empty_indices),
         dropped_headers,
     )
 
-    keep = [
-        i for i in range(len(headers))
-        if i not in empty_indices
-    ]
+    keep = [i for i in range(len(headers)) if i not in empty_indices]
 
     cleaned_headers = [headers[i] for i in keep]
     cleaned_rows: List[List[str]] = []
     for row in data_rows:
-        cleaned_rows.append(
-            [
-                row[i] if i < len(row) else ""
-                for i in keep
-            ]
-        )
+        cleaned_rows.append([row[i] if i < len(row) else "" for i in keep])
 
     return cleaned_headers, cleaned_rows

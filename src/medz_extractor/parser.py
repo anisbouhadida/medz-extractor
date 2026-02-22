@@ -42,8 +42,13 @@ def _cell_to_str(value: object) -> str:
         return ""
     text = str(value).strip()
     # Flatten embedded newlines to a single space.
-    text = text.replace("\r\n", " ").replace("\r", " ").replace(
-        "\n", " ",
+    text = (
+        text.replace("\r\n", " ")
+        .replace("\r", " ")
+        .replace(
+            "\n",
+            " ",
+        )
     )
     # Collapse multiple consecutive spaces into one.
     while "  " in text:
@@ -141,9 +146,7 @@ def detect_header_row(
         if is_tabular_row(rows[i], threshold) and is_tabular_row(
             rows[i + 1], threshold
         ):
-            logger.info(
-                "Header row detected at sheet row index %d.", i
-            )
+            logger.info("Header row detected at sheet row index %d.", i)
             return i
 
     raise ValueError(
@@ -191,8 +194,7 @@ def extract_data(
         # Check for footer markers.
         if is_footer_row(row):
             logger.info(
-                "Footer marker detected at row index %d; "
-                "stopping extraction.",
+                "Footer marker detected at row index %d; stopping extraction.",
                 i,
             )
             break
@@ -221,15 +223,12 @@ def extract_data(
             i += 1
             continue
 
-        data_rows.append(
-            [_cell_to_str(c) for c in row]
-        )
+        data_rows.append([_cell_to_str(c) for c in row])
         i += 1
 
     if not data_rows:
         raise ValueError(
-            "Extracted data has 0 rows after removing "
-            "header and footer blocks."
+            "Extracted data has 0 rows after removing header and footer blocks."
         )
 
     logger.info("Extracted %d data rows.", len(data_rows))
@@ -269,14 +268,11 @@ def parse_sheet(
 
     # Materialise all rows as value tuples.
     rows: List[Tuple[object, ...]] = [
-        tuple(cell.value for cell in row)
-        for row in ws.iter_rows()
+        tuple(cell.value for cell in row) for row in ws.iter_rows()
     ]
 
     if not rows:
-        raise ValueError(
-            f"Sheet '{sheet_label}' is empty — no rows found."
-        )
+        raise ValueError(f"Sheet '{sheet_label}' is empty — no rows found.")
 
     header_index = detect_header_row(rows, threshold)
     logger.info(

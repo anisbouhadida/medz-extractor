@@ -140,7 +140,8 @@ def _read_csv(
 
 
 def _run_cli(
-    fixture_name: str, output_dir: Path,
+    fixture_name: str,
+    output_dir: Path,
 ) -> None:
     """Invoke the CLI and assert a successful exit."""
     xlsx = FIXTURES_DIR / f"{fixture_name}.xlsx"
@@ -166,13 +167,13 @@ class TestCLIProducesExactlyThreeCSVs:
     """The CLI must produce exactly the 3 expected CSV files."""
 
     def test_produces_three_csvs(
-        self, fixture_name: str, tmp_path: Path,
+        self,
+        fixture_name: str,
+        tmp_path: Path,
     ) -> None:
         """CLI generates nomenclature, non_renouveles, retraits."""
         _run_cli(fixture_name, tmp_path)
-        produced: Set[str] = {
-            f.name for f in tmp_path.iterdir() if f.suffix == ".csv"
-        }
+        produced: Set[str] = {f.name for f in tmp_path.iterdir() if f.suffix == ".csv"}
         expected: Set[str] = set(CSV_FILENAMES)
         assert produced == expected, (
             f"[{fixture_name}] Expected CSVs {sorted(expected)}, "
@@ -185,27 +186,39 @@ class TestRowCounts:
     """CSV data row counts must match known expectations."""
 
     def test_nomenclature_row_count(
-        self, fixture_name: str, tmp_path: Path,
+        self,
+        fixture_name: str,
+        tmp_path: Path,
     ) -> None:
         """nomenclature.csv row count matches expectation."""
         _assert_row_count(
-            fixture_name, "nomenclature.csv", tmp_path,
+            fixture_name,
+            "nomenclature.csv",
+            tmp_path,
         )
 
     def test_non_renouveles_row_count(
-        self, fixture_name: str, tmp_path: Path,
+        self,
+        fixture_name: str,
+        tmp_path: Path,
     ) -> None:
         """non_renouveles.csv row count matches expectation."""
         _assert_row_count(
-            fixture_name, "non_renouveles.csv", tmp_path,
+            fixture_name,
+            "non_renouveles.csv",
+            tmp_path,
         )
 
     def test_retraits_row_count(
-        self, fixture_name: str, tmp_path: Path,
+        self,
+        fixture_name: str,
+        tmp_path: Path,
     ) -> None:
         """retraits.csv row count matches expectation."""
         _assert_row_count(
-            fixture_name, "retraits.csv", tmp_path,
+            fixture_name,
+            "retraits.csv",
+            tmp_path,
         )
 
 
@@ -220,8 +233,7 @@ def _assert_row_count(
     expected = EXPECTED_ROW_COUNTS[fixture_name][csv_filename]
     actual = len(data_rows)
     assert actual == expected, (
-        f"[{fixture_name}/{csv_filename}] "
-        f"Expected {expected} data rows, got {actual}."
+        f"[{fixture_name}/{csv_filename}] Expected {expected} data rows, got {actual}."
     )
 
 
@@ -231,27 +243,39 @@ class TestContractHeaders:
     present in every output CSV."""
 
     def test_nomenclature_contract_headers(
-        self, fixture_name: str, tmp_path: Path,
+        self,
+        fixture_name: str,
+        tmp_path: Path,
     ) -> None:
         """nomenclature.csv contains all contract headers."""
         _assert_contract_headers(
-            fixture_name, "nomenclature.csv", tmp_path,
+            fixture_name,
+            "nomenclature.csv",
+            tmp_path,
         )
 
     def test_non_renouveles_contract_headers(
-        self, fixture_name: str, tmp_path: Path,
+        self,
+        fixture_name: str,
+        tmp_path: Path,
     ) -> None:
         """non_renouveles.csv contains all contract headers."""
         _assert_contract_headers(
-            fixture_name, "non_renouveles.csv", tmp_path,
+            fixture_name,
+            "non_renouveles.csv",
+            tmp_path,
         )
 
     def test_retraits_contract_headers(
-        self, fixture_name: str, tmp_path: Path,
+        self,
+        fixture_name: str,
+        tmp_path: Path,
     ) -> None:
         """retraits.csv contains all contract headers."""
         _assert_contract_headers(
-            fixture_name, "retraits.csv", tmp_path,
+            fixture_name,
+            "retraits.csv",
+            tmp_path,
         )
 
 
@@ -265,8 +289,7 @@ def _assert_contract_headers(
     headers, _ = _read_csv(tmp_path / csv_filename)
     header_set: Set[str] = set(headers)
     missing: List[str] = [
-        h for h in CONTRACT_HEADERS[csv_filename]
-        if h not in header_set
+        h for h in CONTRACT_HEADERS[csv_filename] if h not in header_set
     ]
     assert not missing, (
         f"[{fixture_name}/{csv_filename}] "
@@ -282,27 +305,39 @@ class TestFirstColumnIsRowNumber:
     Only the first and last values are checked for speed."""
 
     def test_nomenclature_row_numbering(
-        self, fixture_name: str, tmp_path: Path,
+        self,
+        fixture_name: str,
+        tmp_path: Path,
     ) -> None:
         """nomenclature.csv first column starts at 1."""
         _assert_row_numbering(
-            fixture_name, "nomenclature.csv", tmp_path,
+            fixture_name,
+            "nomenclature.csv",
+            tmp_path,
         )
 
     def test_non_renouveles_row_numbering(
-        self, fixture_name: str, tmp_path: Path,
+        self,
+        fixture_name: str,
+        tmp_path: Path,
     ) -> None:
         """non_renouveles.csv first column starts at 1."""
         _assert_row_numbering(
-            fixture_name, "non_renouveles.csv", tmp_path,
+            fixture_name,
+            "non_renouveles.csv",
+            tmp_path,
         )
 
     def test_retraits_row_numbering(
-        self, fixture_name: str, tmp_path: Path,
+        self,
+        fixture_name: str,
+        tmp_path: Path,
     ) -> None:
         """retraits.csv first column starts at 1."""
         _assert_row_numbering(
-            fixture_name, "retraits.csv", tmp_path,
+            fixture_name,
+            "retraits.csv",
+            tmp_path,
         )
 
 
@@ -314,9 +349,7 @@ def _assert_row_numbering(
     """Verify first row starts at 1 and last row = total count."""
     _run_cli(fixture_name, tmp_path)
     _, data_rows = _read_csv(tmp_path / csv_filename)
-    assert len(data_rows) > 0, (
-        f"[{fixture_name}/{csv_filename}] No data rows."
-    )
+    assert len(data_rows) > 0, f"[{fixture_name}/{csv_filename}] No data rows."
 
     def _to_int(val: str, row_label: str) -> int:
         """
@@ -341,8 +374,7 @@ def _assert_row_numbering(
     expected_last = len(data_rows)
 
     assert first_val == 1, (
-        f"[{fixture_name}/{csv_filename}] "
-        f"First row number is {first_val}, expected 1."
+        f"[{fixture_name}/{csv_filename}] First row number is {first_val}, expected 1."
     )
     assert last_val == expected_last, (
         f"[{fixture_name}/{csv_filename}] "

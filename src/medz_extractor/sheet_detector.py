@@ -37,10 +37,7 @@ def normalize_sheet_name(name: str) -> str:
     """
     # NFD decomposition then strip combining marks (accents).
     decomposed = unicodedata.normalize("NFD", name)
-    stripped = "".join(
-        ch for ch in decomposed
-        if unicodedata.category(ch) != "Mn"
-    )
+    stripped = "".join(ch for ch in decomposed if unicodedata.category(ch) != "Mn")
     # Lowercase.
     lowered = stripped.lower()
     # Replace punctuation and whitespace runs with a single space.
@@ -83,10 +80,7 @@ def detect_sheets(
     for canonical, csv_name in EXPECTED_SHEETS.items():
         found = False
         for norm_actual, original in normalized_actuals.items():
-            if (
-                norm_actual == canonical
-                or norm_actual.startswith(canonical + " ")
-            ):
+            if norm_actual == canonical or norm_actual.startswith(canonical + " "):
                 matched[original] = csv_name
                 logger.info(
                     "Sheet '%s' matched canonical '%s'.",

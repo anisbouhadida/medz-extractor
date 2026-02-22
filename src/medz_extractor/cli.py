@@ -63,9 +63,7 @@ def process(
 
     # --- Load workbook (read-only, no macros). ---
     try:
-        wb = load_workbook(
-            str(input_file), read_only=True, data_only=True
-        )
+        wb = load_workbook(str(input_file), read_only=True, data_only=True)
     except Exception as exc:
         logger.error("Failed to open workbook: %s", exc)
         raise typer.Exit(code=1) from exc
@@ -93,9 +91,7 @@ def process(
 
             # Parse: header detection + data extraction.
             try:
-                headers, data_rows = parse_sheet(
-                    ws, csv_filename
-                )
+                headers, data_rows = parse_sheet(ws, csv_filename)
             except ValueError as exc:
                 logger.error(
                     "Parsing failed for sheet '%s': %s",
@@ -105,23 +101,18 @@ def process(
                 raise typer.Exit(code=1) from exc
 
             logger.info(
-                "Sheet '%s': header row found, "
-                "%d data rows extracted.",
+                "Sheet '%s': header row found, %d data rows extracted.",
                 sheet_name,
                 len(data_rows),
             )
 
             # Schema normalization: drop empty columns.
-            headers, data_rows = drop_empty_columns(
-                headers, data_rows
-            )
+            headers, data_rows = drop_empty_columns(headers, data_rows)
 
             # Write CSV.
             csv_path = out / csv_filename
             try:
-                write_csv(
-                    headers, data_rows, csv_path, delimiter
-                )
+                write_csv(headers, data_rows, csv_path, delimiter)
             except (OSError, ValueError) as exc:
                 logger.error(
                     "CSV write failed for '%s': %s",

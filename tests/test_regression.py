@@ -80,7 +80,8 @@ def _read_csv(path: Path) -> Tuple[List[str], List[List[str]]]:
 
 
 def _run_pipeline(
-    xlsx_path: Path, output_dir: Path,
+    xlsx_path: Path,
+    output_dir: Path,
 ) -> List[Path]:
     """Execute the full extraction pipeline on *xlsx_path*.
 
@@ -91,7 +92,9 @@ def _run_pipeline(
         List of written CSV paths.
     """
     wb = load_workbook(
-        str(xlsx_path), read_only=True, data_only=True,
+        str(xlsx_path),
+        read_only=True,
+        data_only=True,
     )
     try:
         sheet_map = detect_sheets(wb.sheetnames)
@@ -101,7 +104,8 @@ def _run_pipeline(
             ws = wb[sheet_name]
             headers, data_rows = parse_sheet(ws, csv_filename)
             headers, data_rows = drop_empty_columns(
-                headers, data_rows,
+                headers,
+                data_rows,
             )
             csv_path = output_dir / csv_filename
             write_csv(headers, data_rows, csv_path)
@@ -145,7 +149,9 @@ class TestFullPipelineRegression:
     ) -> None:
         """nomenclature.csv matches the golden file exactly."""
         _assert_csv_matches_golden(
-            fixture_name, "nomenclature.csv", tmp_path,
+            fixture_name,
+            "nomenclature.csv",
+            tmp_path,
         )
 
     def test_non_renouveles_matches_golden(
@@ -155,7 +161,9 @@ class TestFullPipelineRegression:
     ) -> None:
         """non_renouveles.csv matches the golden file exactly."""
         _assert_csv_matches_golden(
-            fixture_name, "non_renouveles.csv", tmp_path,
+            fixture_name,
+            "non_renouveles.csv",
+            tmp_path,
         )
 
     def test_retraits_matches_golden(
@@ -165,7 +173,9 @@ class TestFullPipelineRegression:
     ) -> None:
         """retraits.csv matches the golden file exactly."""
         _assert_csv_matches_golden(
-            fixture_name, "retraits.csv", tmp_path,
+            fixture_name,
+            "retraits.csv",
+            tmp_path,
         )
 
 
@@ -186,12 +196,10 @@ def _assert_csv_matches_golden(
     golden_path = GOLDEN_DIR / fixture_name / csv_filename
 
     assert actual_path.exists(), (
-        f"Pipeline did not produce '{csv_filename}' "
-        f"for fixture '{fixture_name}'."
+        f"Pipeline did not produce '{csv_filename}' for fixture '{fixture_name}'."
     )
     assert golden_path.exists(), (
-        f"Golden file missing: {golden_path}. "
-        f"Run the pipeline manually to create it."
+        f"Golden file missing: {golden_path}. Run the pipeline manually to create it."
     )
 
     actual_hdr, actual_rows = _read_csv(actual_path)
@@ -207,9 +215,7 @@ def _assert_csv_matches_golden(
         f"Expected {len(golden_rows)}, got {len(actual_rows)}."
     )
 
-    for i, (actual_row, golden_row) in enumerate(
-        zip(actual_rows, golden_rows)
-    ):
+    for i, (actual_row, golden_row) in enumerate(zip(actual_rows, golden_rows)):
         assert actual_row == golden_row, (
             f"[{fixture_name}/{csv_filename}] "
             f"Row {i + 1} mismatch.\n"
