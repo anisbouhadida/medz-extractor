@@ -143,8 +143,7 @@ def process(
 
             if dry_run:
                 logger.info(
-                    "Sheet '%s': %d columns, %d rows "
-                    "(skipping CSV write).",
+                    "Sheet '%s': %d columns, %d rows (skipping CSV write).",
                     sheet_name,
                     len(headers),
                     len(data_rows),

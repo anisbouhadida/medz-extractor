@@ -209,6 +209,4 @@ def test_dry_run_logs_but_writes_no_files(
     # --- No CSV files should exist ---
     if output_dir.exists():
         csv_files = list(output_dir.glob("*.csv"))
-        assert csv_files == [], (
-            f"Dry-run should not write CSVs, but found: {csv_files}"
-        )
+        assert csv_files == [], f"Dry-run should not write CSVs, but found: {csv_files}"
