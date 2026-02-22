@@ -5,7 +5,7 @@
 ![Open Source](https://img.shields.io/badge/Open%20Source-Community%20Driven-success)
 [![CI](https://github.com/anisbouhadida/medz-extractor/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/anisbouhadida/medz-extractor/actions/workflows/ci.yml)
 [![Process](https://github.com/anisbouhadida/medz-extractor/actions/workflows/process.yml/badge.svg?branch=main)](https://github.com/anisbouhadida/medz-extractor/actions/workflows/process.yml)
-![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/anisbouhadida/COVERAGE_GIST_ID/raw/medz-extractor-coverage.json)
+![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/anisbouhadida/052a1ce9644be82211ca077a0857bb0b/raw/medz-extractor-coverage.json)
 
 `medz-extractor` is a rule-based CLI that converts official Algerian pharmaceutical nomenclature Excel reports into clean CSV datasets.
 
