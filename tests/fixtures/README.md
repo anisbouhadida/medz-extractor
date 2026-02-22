@@ -20,6 +20,7 @@ reports placed here for regression testing.
 3. Review the golden CSVs for correctness.
 4. Commit both the fixture and the golden CSVs.
 5. The parametrised regression test picks it up automatically.
+5.5. Update `EXPECTED_ROW_COUNTS` in `tests/test_e2e.py` with the actual row counts from the generated CSVs.
 
 ## Golden CSV outputs
 
