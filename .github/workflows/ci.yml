@@ -36,7 +36,7 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v7.1.0
         with:
           commit_message: "style: auto-fix lint and format via ruff"
-          file_pattern: "src/**/*.py tests/**/*.py"
+          file_pattern: "src/ tests/"
 
   # ── 2. Test + Coverage ─────────────────────────────────────────
   test:
