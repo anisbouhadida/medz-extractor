@@ -153,6 +153,16 @@ Exit behavior:
 - `0` on success
 - non-zero on failure
 
+### 7.1 Failure and edge-case catalog
+
+| Condition | Exit code | Representative error message |
+| --- | ---: | --- |
+| Missing expected sheet(s) | non-zero (`1`) | `Missing expected sheet(s): 'non renouveles'. Available sheets: 'NOMENCLATURE', 'Retraits'.` |
+| Header row not found | non-zero (`1`) | `Header row not found: no row with >= 8 non-empty cells followed by another tabular row.` |
+| Extracted data is empty | non-zero (`1`) | `Extracted data has 0 rows after removing header and footer blocks.` |
+| CSV write error | non-zero (`1`) | `CSV write failed for '/.../nomenclature.csv': Failed to write CSV to '/.../nomenclature.csv': ...` |
+| Invalid input path / unreadable input | non-zero (CLI argument validation) | `Invalid value for 'INPUT_FILE': Path '/.../input/2025-99.xlsx' does not exist.` |
+
 ---
 
 ## 8. Logging Contract

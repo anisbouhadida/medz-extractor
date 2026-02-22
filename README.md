@@ -104,6 +104,17 @@ output/YYYY-MM/
 └── retraits.csv
 ```
 
+### Failure modes
+
+On failure, the CLI exits with a non-zero code and logs a clear error.
+Typical cases include:
+
+- missing required sheet(s) (`Missing expected sheet(s): ...`)
+- header row not detected (`Header row not found: ...`)
+- extracted table is empty (`Extracted data has 0 rows ...`)
+- CSV write failure (`CSV write failed for '...': ...`)
+- invalid/unreadable input path (`Invalid value for 'INPUT_FILE': Path '...' does not exist.`)
+
 ---
 
 ## How it works
