@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   # ── 1. Lint ────────────────────────────────────────────────────
@@ -26,11 +26,17 @@ jobs:
       - name: Install ruff
         run: pip install ruff
 
-      - name: Run ruff check
-        run: ruff check src/ tests/
+      - name: Run ruff check (auto-fix)
+        run: ruff check --fix src/ tests/
 
-      - name: Run ruff format check
-        run: ruff format --check src/ tests/
+      - name: Run ruff format (auto-fix)
+        run: ruff format src/ tests/
+
+      - name: Commit lint fixes
+        uses: stefanzweifel/git-auto-commit-action@v7.1.0
+        with:
+          commit_message: "style: auto-fix lint and format via ruff"
+          file_pattern: "src/**/*.py tests/**/*.py"
 
   # ── 2. Test + Coverage ─────────────────────────────────────────
   test:
