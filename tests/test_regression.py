@@ -84,8 +84,8 @@ def _run_pipeline(
 ) -> List[Path]:
     """Execute the full extraction pipeline on *xlsx_path*.
 
-    Mirrors the logic of ``cli.process`` without Typer so that
-    tests do not depend on CLI wiring.
+    Mirrors the logic of the ``process`` CLI command without
+    Typer so that tests do not depend on CLI wiring.
 
     Returns:
         List of written CSV paths.
