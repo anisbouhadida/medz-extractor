@@ -260,4 +260,9 @@ def parse_sheet(
         )
 
     header_index = detect_header_row(rows, threshold)
+    logger.info(
+        "Sheet '%s': header row index %d.",
+        sheet_label,
+        header_index,
+    )
     return extract_data(rows, header_index)
