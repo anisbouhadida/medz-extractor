@@ -134,3 +134,25 @@ class TestDetectSheets:
         ]
         result = detect_sheets(names)
         assert result["Retraits AOUT 2024"] == "retraits.csv"
+
+    def test_extra_unexpected_sheets_ignored(self) -> None:
+        """Extra sheets beyond the 3 expected are silently ignored.
+
+        Workbooks may contain utility sheets (e.g. "Feuil1",
+        "Stats", "Notes") that are not part of the nomenclature
+        schema.  They must not cause errors or appear in the
+        returned mapping.
+        """
+        names = [
+            "Nomenclature",
+            "Non Renouvelés",
+            "Retraits",
+            "Feuil1",
+            "Stats internes",
+            "Notes",
+        ]
+        result = detect_sheets(names)
+        assert len(result) == 3
+        assert "Feuil1" not in result
+        assert "Stats internes" not in result
+        assert "Notes" not in result

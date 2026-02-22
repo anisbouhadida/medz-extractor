@@ -3,7 +3,9 @@
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![Python 3.14+](https://img.shields.io/badge/Python-3.14%2B-blue.svg)
 ![Open Source](https://img.shields.io/badge/Open%20Source-Community%20Driven-success)
-[![CI](https://github.com/anisbouhadida/medz-extractor/actions/workflows/process.yml/badge.svg?branch=main)](https://github.com/anisbouhadida/medz-extractor/actions/workflows/process.yml)
+[![CI](https://github.com/anisbouhadida/medz-extractor/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/anisbouhadida/medz-extractor/actions/workflows/ci.yml)
+[![Process](https://github.com/anisbouhadida/medz-extractor/actions/workflows/process.yml/badge.svg?branch=main)](https://github.com/anisbouhadida/medz-extractor/actions/workflows/process.yml)
+![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/anisbouhadida/COVERAGE_GIST_ID/raw/medz-extractor-coverage.json)
 
 `medz-extractor` is a rule-based CLI that converts official Algerian pharmaceutical nomenclature Excel reports into clean CSV datasets.
 
@@ -25,6 +27,7 @@ Releases are irregular, but input and output naming must follow the `YYYY-MM` co
     - [2) Add an input file](#2-add-an-input-file)
     - [3) Run](#3-run)
   - [Usage](#usage)
+    - [Failure modes](#failure-modes)
   - [How it works](#how-it-works)
   - [Project structure](#project-structure)
   - [Quality and CI](#quality-and-ci)
@@ -178,12 +181,39 @@ Run tests locally:
 pytest
 ```
 
-GitHub Actions workflow (`.github/workflows/process.yml`):
+Run with coverage:
 
-- Trigger: push to `main` when `input/**.xlsx` changes
-- Runtime: `ubuntu-latest`, Python 3.14
-- Action: loop over `input/*.xlsx` and generate `output/<YYYY-MM>/*.csv`
-- Commit: auto-commit updated `output/**/*.csv`
+```bash
+pytest --cov=medz_extractor --cov-report=term-missing
+```
+
+**Test coverage** focuses on sheet-name fuzzy matching, header/footer
+detection, structural-collapse stopping, blank-row handling, empty-column
+dropping, CSV writing, and end-to-end regression against golden outputs.
+
+GitHub Actions workflows:
+
+- **CI** (`.github/workflows/ci.yml`) — runs on every push/PR to `main`;
+  lints with Ruff, runs the full test suite with coverage, and updates the
+  coverage badge via a GitHub Gist.
+- **Process** (`.github/workflows/process.yml`) — runs on push to `main` when
+  `input/**.xlsx` changes; generates `output/<YYYY-MM>/*.csv` and auto-commits.
+
+<details>
+<summary>One-time setup for the dynamic coverage badge</summary>
+
+1. Create a **public** GitHub Gist (content doesn't matter — it will be
+   overwritten by CI). Copy its **Gist ID** from the URL.
+2. Create a **classic Personal Access Token** with only the `gist` scope
+   (Settings → Developer settings → Tokens (classic)).
+3. In your repo → **Settings → Secrets and variables → Actions**:
+   - Add a **secret** `GIST_TOKEN` with the PAT.
+   - Add a **variable** `COVERAGE_GIST_ID` with the Gist ID.
+4. Replace `COVERAGE_GIST_ID` in the badge URL in this README with the
+   actual Gist ID.
+
+After the first push to `main`, the badge updates automatically.
+</details>
 
 ---
 

@@ -237,3 +237,42 @@ class TestExtractData:
         ]
         _, data = extract_data(rows, header_index=0)
         assert data == [["a", ""]]
+
+    def test_blank_rows_inside_table_are_skipped(self) -> None:
+        """Blank rows surrounded by tabular data are skipped.
+
+        Real-world sheets occasionally contain an empty row
+        between data sections.  When more tabular rows follow,
+        the blank row must be silently skipped rather than
+        triggering structural-collapse termination.
+        """
+        rows = [
+            ("C1", "C2", "C3"),
+            ("a", "b", "c"),
+            (None, None, None),   # blank row inside data
+            ("d", "e", "f"),     # tabular row after blank
+            ("g", "h", "i"),
+        ]
+        _, data = extract_data(rows, header_index=0)
+        assert data == [
+            ["a", "b", "c"],
+            ["d", "e", "f"],
+            ["g", "h", "i"],
+        ]
+
+    def test_odd_footer_prefix_no_false_positive(self) -> None:
+        """Sparse rows with text resembling — but not matching —
+        footer prefixes must not stop extraction.
+
+        Only exact prefixes ``F=``, ``I=``, ``Nb:`` qualify.
+        Strings like ``"Fabricant"``, ``"Info"``, or ``"NB"``
+        (without colon) are ordinary data.
+        """
+        rows = [
+            ("C1", "C2"),
+            ("Fabricant", None),   # sparse, but no "F="
+            ("Info", None),       # sparse, but no "I="
+            ("NB", None),         # sparse, no colon after NB
+        ]
+        _, data = extract_data(rows, header_index=0)
+        assert len(data) == 3
