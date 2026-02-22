@@ -1,0 +1,36 @@
+name: Process nomenclature
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "input/**.xlsx"
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: pip install -e .
+
+      - name: Run preprocessing
+        run: |
+          for f in input/*.xlsx; do
+            month=$(basename "$f" .xlsx)
+            medz-extractor process "$f" --out "output/$month/"
+          done
+
+      - name: Commit CSV outputs
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update CSV outputs"
+          file_pattern: "output/**/*.csv"

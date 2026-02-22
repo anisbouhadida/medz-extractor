@@ -1,0 +1,27 @@
+[project]
+name = "medz-extractor"
+version = "0.1.0"
+description = "a deterministic, open-source tool that converts official Algerian pharmaceutical nomenclature Excel reports into clean, structured CSV datasets for reproducible data workflows."
+requires-python = ">=3.14"
+dependencies = [
+  "typer>=0.23",
+  "openpyxl>=3.1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.4",
+]
+
+[project.scripts]
+medz-extractor = "medz_extractor.cli:app"
+
+[build-system]
+requires = ["setuptools>=72"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
