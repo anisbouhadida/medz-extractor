@@ -120,7 +120,12 @@ def test_process_logs_key_observability_fields(
     )
 
     caplog.set_level(logging.INFO)
-    process(input_file=input_file, out=output_dir, delimiter=",")
+    process(
+        input_file=input_file,
+        out=output_dir,
+        delimiter=",",
+        dry_run=False,
+    )
 
     logs = caplog.text
 
@@ -151,3 +156,59 @@ def test_process_logs_key_observability_fields(
 
     # --- Total runtime ---
     assert "Generated 3 CSV file(s) in" in logs
+
+
+def test_dry_run_logs_but_writes_no_files(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    tmp_path: Path,
+) -> None:
+    """Dry-run mode logs sheet info without writing CSV files."""
+    input_file = tmp_path / "input.xlsx"
+    input_file.write_bytes(b"placeholder")
+    output_dir = tmp_path / "out"
+
+    fake_wb = _FakeWorkbook(
+        {
+            "Nomenclature": _FakeWorksheet(_build_tabular_rows()),
+            "Non Renouvelés": _FakeWorksheet(_build_tabular_rows()),
+            "Retraits": _FakeWorksheet(_build_tabular_rows()),
+        }
+    )
+
+    monkeypatch.setattr(
+        "medz_extractor.cli.load_workbook",
+        lambda *_args, **_kwargs: fake_wb,
+    )
+
+    caplog.set_level(logging.INFO)
+    process(
+        input_file=input_file,
+        out=output_dir,
+        delimiter=",",
+        dry_run=True,
+    )
+
+    logs = caplog.text
+
+    # --- Dry-run banner ---
+    assert "Dry-run mode" in logs
+
+    # --- Sheet detection ---
+    assert "Detected sheets:" in logs
+
+    # --- Per-sheet column + row summary ---
+    assert "columns" in logs
+    assert "rows" in logs
+    assert "skipping CSV write" in logs
+
+    # --- Final summary ---
+    assert "Dry-run finished" in logs
+    assert "No files written" in logs
+
+    # --- No CSV files should exist ---
+    if output_dir.exists():
+        csv_files = list(output_dir.glob("*.csv"))
+        assert csv_files == [], (
+            f"Dry-run should not write CSVs, but found: {csv_files}"
+        )

@@ -18,9 +18,13 @@ from medz_extractor.writer import write_csv
 
 app = typer.Typer(
     help=(
-        "medz-extractor — convert Algerian pharmaceutical "
-        "nomenclature Excel reports into clean CSV datasets."
+        "Convert official Algerian pharmaceutical nomenclature "
+        "Excel reports (.xlsx) into clean CSV datasets.\n\n"
+        "Produces exactly 3 files per workbook:\n\n"
+        "  nomenclature.csv  non_renouveles.csv  retraits.csv"
     ),
+    rich_markup_mode="rich",
+    no_args_is_help=True,
 )
 
 # Configure root logger for the package.
@@ -35,7 +39,7 @@ logger = logging.getLogger(__name__)
 def process(
     input_file: Path = typer.Argument(
         ...,
-        help="Path to the input .xlsx file.",
+        help="Path to the input .xlsx nomenclature workbook.",
         exists=True,
         readable=True,
         resolve_path=True,
@@ -43,19 +47,44 @@ def process(
     out: Path = typer.Option(
         ...,
         "--out",
-        help="Output directory for generated CSV files.",
+        help=(
+            "Directory where the 3 CSV files will be written "
+            "(created automatically if it does not exist)."
+        ),
         resolve_path=True,
     ),
     delimiter: str = typer.Option(
         ",",
         "--delimiter",
-        help="CSV field delimiter.",
+        help="CSV field delimiter (e.g. ',' or ';').",
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help=(
+            "Run the full parse pipeline (sheet detection, "
+            "header detection, row extraction) and report "
+            "results without writing any CSV files.  "
+            "Useful for validating a new .xlsx before processing."
+        ),
     ),
 ) -> None:
-    """Process an Excel nomenclature file into clean CSVs.
+    """Process an Excel nomenclature workbook into clean CSVs.
 
-    Reads the workbook, detects the 3 expected sheets, extracts
-    tabular data, normalizes schema, and writes CSV outputs.
+    Reads the workbook, detects the 3 expected sheets
+    (Nomenclature, Non Renouveles, Retraits), extracts tabular
+    data, drops empty columns, and writes normalised CSV outputs.
+
+    Use --dry-run to inspect detected sheets and row counts
+    without writing any files.
+
+    [bold]Examples:[/bold]
+
+      medz-extractor input/2025-11.xlsx --out output/2025-11/
+
+      medz-extractor input/2025-11.xlsx --out output/2025-11/ --delimiter ';'
+
+      medz-extractor input/2025-11.xlsx --out output/2025-11/ --dry-run
     """
     start = time.monotonic()
     logger.info("Input file: %s", input_file)
@@ -77,6 +106,9 @@ def process(
         raise typer.Exit(code=1) from exc
 
     logger.info("Detected sheets: %s", sheet_map)
+
+    if dry_run:
+        logger.info("Dry-run mode — no CSV files will be written.")
 
     # --- Process each sheet. ---
     generated: list[Path] = []
@@ -109,6 +141,16 @@ def process(
             # Schema normalization: drop empty columns.
             headers, data_rows = drop_empty_columns(headers, data_rows)
 
+            if dry_run:
+                logger.info(
+                    "Sheet '%s': %d columns, %d rows "
+                    "(skipping CSV write).",
+                    sheet_name,
+                    len(headers),
+                    len(data_rows),
+                )
+                continue
+
             # Write CSV.
             csv_path = out / csv_filename
             try:
@@ -126,10 +168,13 @@ def process(
         wb.close()
 
     elapsed = time.monotonic() - start
-    logger.info(
-        "Done. Generated %d CSV file(s) in %.2f s:",
-        len(generated),
-        elapsed,
-    )
-    for p in generated:
-        logger.info("  %s", p)
+    if dry_run:
+        logger.info("Dry-run finished in %.2f s. No files written.", elapsed)
+    else:
+        logger.info(
+            "Done. Generated %d CSV file(s) in %.2f s:",
+            len(generated),
+            elapsed,
+        )
+        for p in generated:
+            logger.info("  %s", p)
