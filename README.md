@@ -2,95 +2,187 @@
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![Python 3.14+](https://img.shields.io/badge/Python-3.14%2B-blue.svg)
+![Open Source](https://img.shields.io/badge/Open%20Source-Community%20Driven-success)
+[![CI](https://github.com/anisbouhadida/medz-extractor/actions/workflows/process.yml/badge.svg?branch=main)](https://github.com/anisbouhadida/medz-extractor/actions/workflows/process.yml)
 
-**medz-extractor** is a deterministic, open-source preprocessing tool that converts official Algerian pharmaceutical nomenclature Excel reports into clean, structured CSV datasets for reproducible data workflows.
+`medz-extractor` is a rule-based CLI that converts official Algerian pharmaceutical nomenclature Excel reports into clean CSV datasets.
+
+It is built for reproducible release-cycle processing, open-source collaboration, and reliable downstream ingestion.
+
+Releases are irregular, but input and output naming must follow the `YYYY-MM` convention.
 
 ---
 
 ## Table of Contents
 
-- [Overview](#overview)
-- [Requirements](#requirements)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Output Structure](#output-structure)
-- [Contributing](#contributing)
-- [License](#license)
+- [medz-extractor](#medz-extractor)
+  - [Table of Contents](#table-of-contents)
+  - [Why this project](#why-this-project)
+  - [Features](#features)
+  - [Quick start](#quick-start)
+    - [1) Install](#1-install)
+    - [2) Add an input file](#2-add-an-input-file)
+    - [3) Run](#3-run)
+  - [Usage](#usage)
+  - [How it works](#how-it-works)
+  - [Project structure](#project-structure)
+  - [Quality and CI](#quality-and-ci)
+  - [Contributing](#contributing)
+  - [AI-Augmented Development](#ai-augmented-development)
+  - [License](#license)
 
 ---
 
-## Overview
+## Why this project
 
-Each month, an official `.xlsx` file is published containing pharmaceutical nomenclature data. These files include institutional header blocks, footer notes, and occasional schema changes that make them unsuitable for direct ingestion.
+Official nomenclature `.xlsx` releases are not directly usable as structured datasets:
 
-`medz-extractor` automates the cleaning process:
+- they include an institutional header block above the table,
+- footer notes/legend rows at the end,
+- and occasional schema drift (for example: extra empty columns).
 
-- Detects and validates the 3 expected sheets (`Nomenclature`, `Non Renouvelés`, `Retraits`)
-- Strips institutional headers and footer notes
-- Drops entirely empty columns
-- Outputs standardized CSV files with consistent schema and encoding
-
-No database logic, no LLM usage, no network access — purely deterministic file processing.
+This tool makes the extraction process consistent, explicit, and easy to automate.
 
 ---
 
-## Requirements
+## Features
 
-- Python 3.14+
-- [`openpyxl`](https://openpyxl.readthedocs.io/)
-- [`typer`](https://typer.tiangolo.com/)
+- Fuzzy sheet detection for the 3 required sheets (`Nomenclature`, `Non Renouvelés`, `Retraits`)
+- Structural header detection (instead of hardcoded row numbers)
+- Footer-aware extraction with fail-fast behavior
+- Empty-column cleanup while preserving column order
+- UTF-8 CSV export with configurable delimiter
+- CI-ready workflow for release-cycle processing
 
 ---
 
-## Installation
+## Quick start
+
+### 1) Install
 
 ```bash
-git clone https://github.com/your-org/medz-extractor.git
+git clone https://github.com/anisbouhadida/medz-extractor.git
 cd medz-extractor
 pip install -e .
+```
+
+### 2) Add an input file
+
+```text
+input/2025-11.xlsx
+```
+
+### 3) Run
+
+```bash
+medz-extractor input/2025-11.xlsx --out output/2025-11/
 ```
 
 ---
 
 ## Usage
 
-Place the Excel file under `input/`:
-
-```
-input/2025-11.xlsx
-```
-
-Run the processing command:
+Both CLI forms are supported:
 
 ```bash
+medz-extractor input/2025-11.xlsx --out output/2025-11/
 medz-extractor process input/2025-11.xlsx --out output/2025-11/
 ```
 
-On success, the tool logs the rows extracted, columns dropped, and CSV paths written, then exits with code `0`. On any failure (missing sheet, undetectable header, zero data rows), it exits with a non-zero code and a descriptive error message.
+Optional delimiter:
+
+```bash
+medz-extractor input/2025-11.xlsx --out output/2025-11/ --delimiter ';'
+```
+
+Generated files:
+
+```text
+output/YYYY-MM/
+├── nomenclature.csv
+├── non_renouveles.csv
+└── retraits.csv
+```
 
 ---
 
-## Output Structure
+## How it works
 
-```
-output/
-└── YYYY-MM/
-    ├── nomenclature.csv
-    ├── non_renouveles.csv
-    └── retraits.csv
+1. Open workbook in read-only mode.
+2. Detect expected sheets with accent/case/spacing tolerant matching.
+3. Detect real table header row from structure (tabular thresholds).
+4. Extract data rows and stop before footer/structural collapse.
+5. Drop entirely empty columns.
+6. Write normalized CSVs to the output folder.
+
+If a required sheet is missing, header is not found, extracted data is empty, or CSV writing fails, the command exits with a clear non-zero error.
+
+---
+
+## Project structure
+
+```text
+src/medz_extractor/
+├── cli.py             # Typer CLI entrypoint
+├── sheet_detector.py  # fuzzy sheet matching
+├── parser.py          # structural parsing (header/footer/table)
+├── schema.py          # empty-column normalization
+└── writer.py          # CSV writing
+
+tests/
+├── test_sheet_detector.py
+├── test_parser.py
+├── test_schema.py
+└── test_writer.py
 ```
 
-All CSV files use **UTF-8** encoding and a consistent delimiter. Column order matches the detected header row in the source workbook.
+Detailed parsing/behavior rules: [docs/SPECS.md](docs/SPECS.md)
+
+---
+
+## Quality and CI
+
+Run tests locally:
+
+```bash
+pytest
+```
+
+GitHub Actions workflow (`.github/workflows/process.yml`):
+
+- Trigger: push to `main` when `input/**.xlsx` changes
+- Runtime: `ubuntu-latest`, Python 3.14
+- Action: loop over `input/*.xlsx` and generate `output/<YYYY-MM>/*.csv`
+- Commit: auto-commit updated `output/**/*.csv`
 
 ---
 
 ## Contributing
 
-1. Fork the repository.
-2. Add or update the Excel file under `input/YYYY-MM.xlsx`.
-3. Open a pull request — GitHub Actions will run the preprocessing pipeline and commit the generated CSVs automatically.
+Contributions are welcome.
 
-Please read [docs/SPECS.md](docs/SPECS.md) before contributing to understand the parsing rules and failure conditions.
+This project is currently maintained by a solo developer, so focused, well-scoped pull requests are especially appreciated.
+
+1. Fork the repository.
+2. Add/update an input file under `input/YYYY-MM.xlsx` (required naming format) or improve extraction logic/tests.
+3. Open a pull request with a clear description of the change.
+
+Before contributing, please read:
+
+- [docs/PRD.md](docs/PRD.md)
+- [docs/SPECS.md](docs/SPECS.md)
+
+---
+
+## AI-Augmented Development
+
+This project uses an AI-augmented development workflow:
+
+- ChatGPT (GPT-5.2, Thinking mode): early brainstorming and idea refinement.
+- Perplexity: targeted technical research.
+- GitHub Copilot (Claude Opus 4.6, GPT-5.3-Codex): implementation support and iteration.
+
+All final design and code decisions were reviewed and validated by the maintainer.
 
 ---
 

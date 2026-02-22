@@ -1,232 +1,193 @@
 # SPECS.md — Nomenclature Pre-Processing Tool (v1)
 
-## Purpose
+## 1. Purpose
 
-Technical specifications for the preprocessing application that converts official monthly Excel nomenclature files into clean CSV files ready for ingestion.
-
-This document defines how the system **MUST** behave (implementation-level rules).
-
----
-
-## 1. Input Specifications
-
-### Accepted format
-
-- `.xlsx` only
-
-### Input location
-
-```
-input/YYYY-MM.xlsx
-```
-
-### File assumptions
-
-- Excel produced by official authority
-- Contains formatted report structure
-- Includes:
-  - institutional header block
-  - tabular dataset
-  - footer notes
+Implementation-level specification for converting official
+nomenclature Excel files into normalized CSV outputs.
 
 ---
 
-## 2. Required Sheets
+## 2. Input Contract
 
-The file **MUST** contain the following sheets (fuzzy detection):
-
-- `Nomenclature`
-- `Non Renouvelés`
-- `Retraits`
-
-### Matching rules
-
-- Case-insensitive
-- Ignore accents
-- Ignore extra spaces
-
-### Failure
-
-If any sheet is missing → abort processing.
+- Accepted file type: `.xlsx`
+- Input path convention: `input/YYYY-MM.xlsx` (required naming format)
+- Release cadence may be irregular, but naming must strictly follow `YYYY-MM`.
+- Workbook is opened read-only with computed values (`data_only=True`)
 
 ---
 
-## 3. Structural Parsing Rules
+## 3. Required Sheets
 
-### 3.1 Institutional Header Removal
+The workbook must contain three expected logical sheets:
 
-Scan rows from top until detecting the real header row.
+- Nomenclature
+- Non Renouvelés
+- Retraits
 
-A row qualifies as **HEADER** if:
+### 3.1 Matching Rules (implemented)
 
-- non-empty cells ≥ threshold
-- next row is also tabular
+Sheet-name matching is based on normalized names:
+
+- Lowercased
+- Accent-stripped (Unicode decomposition)
+- `_` and `-` treated as spaces
+- Repeated whitespace collapsed
+- Canonical match OR canonical prefix + suffix text
+
+Examples that match:
+
+- `NOMENCLATURE`
+- `Non_Renouvelés`
+- `Retraits AOUT 2024`
+
+### 3.2 Failure
+
+If one or more expected sheets are not found, processing fails with an error
+listing missing canonical names and available sheet names.
+
+---
+
+## 4. Structural Parsing
+
+## 4.1 Header Detection
+
+Rows are scanned top-down. A row is selected as header when:
+
+- non-empty cell count >= threshold
+- next row is also tabular with same threshold
 
 Thresholds:
 
-- Nomenclature: ≥ 8 non-empty cells
-- Other sheets: ≥ 6 non-empty cells
+- Nomenclature context: 8
+- Other contexts: 6
 
-All rows above the header → discard.
+If no row satisfies this: fail.
 
----
+## 4.2 Data Start
 
-### 3.2 Data Region Detection
+Data extraction starts immediately after detected header row.
 
-Data starts immediately after the header row.
+## 4.3 Footer and End-of-Table Detection
 
----
+Extraction stops when one of these conditions is met:
 
-### 3.3 Footer Detection
+1. Footer legend row:
+   - row contains a cell starting with `F=`, `I=`, or `Nb:`
+   - and row non-empty count <= 3
+2. Structural collapse:
+   - a blank row is encountered
+   - and next significant row is not tabular (minimum 2 non-empty cells)
 
-Stop data extraction when any row contains a value starting with:
+Blank rows inside data are skipped only when subsequent tabular data continues.
 
-- `F=`
-- `I=`
-- `Nb:`
+This sparse-row footer rule intentionally avoids false positives for dense
+data rows containing values like `I=370MG/ML`.
 
-OR when encountering a blank row followed by non-tabular rows.
+## 4.4 Empty Output Guard
 
-Footer and all trailing rows → discard.
-
----
-
-## 4. Schema Normalization
-
-### Empty Column Removal
-
-After table extraction, for each column:
-
-- If all values are empty or null → drop column
-
-Purpose:
-
-- Handle schema expansion (Nov 2025+)
-- Remove unused columns
+If extraction yields 0 data rows: fail.
 
 ---
 
-## 5. CSV Output Specifications
+## 5. Schema Normalization
 
-For each sheet generate:
+After extraction:
 
-```
-output/YYYY-MM/nomenclature.csv
-output/YYYY-MM/non_renouveles.csv
-output/YYYY-MM/retraits.csv
-```
+- Identify columns empty across all data rows
+- Drop those columns from headers and every row
+- Preserve original order of remaining columns
+- Handle short rows safely (missing cells treated as empty)
 
-### CSV rules
+---
+
+## 6. CSV Output
+
+For each detected expected sheet, write exactly one CSV with normalized name:
+
+- `nomenclature.csv`
+- `non_renouveles.csv`
+- `retraits.csv`
+
+Rules:
 
 - UTF-8 encoding
-- Consistent delimiter (configurable)
-- Preserve header order
-- Escape quotes
-- No extra blank lines
+- Newline handling compatible with CSV writer
+- Configurable delimiter (default `,`)
+- `csv.QUOTE_MINIMAL` quoting
+- Output directories auto-created
+- Existing files are overwritten
+
+Write errors fail processing immediately.
 
 ---
 
-## 6. CLI Specifications
+## 7. CLI Contract
 
-### Command
+Primary command form:
 
 ```bash
-medz-extractor process input/YYYY-MM.xlsx --out output/YYYY-MM/
+medz-extractor input/YYYY-MM.xlsx --out output/YYYY-MM/
 ```
 
-### Behavior
+Arguments/options:
 
-- Create output folder if missing
-- Overwrite existing CSVs for same month
-- Return exit code:
-  - `0` — success
-  - non-zero — failure
+- positional `input_file` (must exist and be readable)
+- required `--out` directory
+- optional `--delimiter` (default `,`)
 
----
+Exit behavior:
 
-## 7. Logging Requirements
-
-Per execution log:
-
-- Input file path
-- Sheets detected
-- Header row index
-- Data rows extracted
-- Columns dropped
-- CSV paths generated
-- Execution time
+- `0` on success
+- non-zero on failure
 
 ---
 
-## 8. Failure Conditions
+## 8. Logging Contract
 
-Processing **MUST** stop if:
+Execution logs include at minimum:
 
-- Missing sheet
-- Header not detected
-- No data rows
-- CSV write failure
-
-Errors must be explicit and human-readable.
-
----
-
-## 9. Determinism
-
-Given identical XLSX input:
-
-- CSV outputs **MUST** be identical
-- No randomness
-- No external API calls
-- No time-dependent transformations
+- Input path
+- Output directory
+- Detected sheet mapping
+- Per-sheet processing progress
+- Extracted row counts
+- Dropped empty columns
+- Written CSV paths
+- Total execution time
 
 ---
 
-## 10. Configuration (future-ready)
+## 9. Reproducibility and Security Constraints
 
-Allow config file for:
-
-- Sheet name patterns
-- Header threshold values
-- Footer keywords
-- CSV delimiter
-
----
-
-## 11. Testing Requirements
-
-Test scenarios:
-
-1. Header detection works
-2. Footer removal works
-3. Empty columns dropped
-4. Schema expansion handled
-5. Missing sheet → failure
-6. Malformed file → failure
+- No randomness in processing
+- No network access
+- No macro execution
+- No external service dependencies in processing
+- Pure Excel-to-CSV transformation only
 
 ---
 
-## 12. Performance Expectations
+## 10. Tests Required
 
-- File size: ~5k rows per sheet
-- Target runtime: < 10 seconds per file
-- Memory: must operate within typical CI limits
+Minimum enforced test coverage:
 
----
-
-## 13. Security Constraints
-
-- No execution of macros
-- No external network calls
-- Treat Excel as untrusted input
-- Parse read-only
+1. Name normalization and fuzzy matching
+2. Missing-sheet failure paths
+3. Header detection success/failure
+4. Footer detection markers and sparse-row logic
+5. Structural-collapse stopping
+6. Empty-column dropping and order preservation
+7. CSV write behavior and input validation failures
 
 ---
 
-## 14. Future Extensions (Not v1)
+## 11. CI Workflow Contract
 
-- Schema mapping
-- Diffing months
-- Metadata manifest
-- Dockerization
-- Data validation layer
+The repository workflow (`.github/workflows/process.yml`) currently specifies:
+
+- Trigger: push event on `main`
+- Path filter: `input/**.xlsx`
+- Job environment: `ubuntu-latest`, Python 3.14
+- Processing command pattern:
+   `for f in input/*.xlsx; do medz-extractor "$f" --out "output/<YYYY-MM>/"; done`
+- Auto-commit scope: `output/**/*.csv`
