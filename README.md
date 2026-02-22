@@ -19,6 +19,7 @@ Releases are irregular, but input and output naming must follow the `YYYY-MM` co
   - [Table of Contents](#table-of-contents)
   - [Why this project](#why-this-project)
   - [Features](#features)
+  - [External contract](#external-contract)
   - [Quick start](#quick-start)
     - [1) Install](#1-install)
     - [2) Add an input file](#2-add-an-input-file)
@@ -53,6 +54,24 @@ This tool makes the extraction process consistent, explicit, and easy to automat
 - Empty-column cleanup while preserving column order
 - UTF-8 CSV export with configurable delimiter
 - CI-ready workflow for release-cycle processing
+
+---
+
+## External contract
+
+For every valid input Excel workbook, `medz-extractor` guarantees exactly these
+three CSV outputs for downstream consumers (including Spring Batch jobs):
+
+- `Nomenclature` sheet → `nomenclature.csv`
+- `Non Renouvelés` sheet → `non_renouveles.csv`
+- `Retraits` sheet → `retraits.csv`
+
+Contract guarantees:
+
+- exactly these 3 files are produced per input workbook,
+- UTF-8 encoding,
+- stable delimiter (default `,`, configurable),
+- header row always first in each CSV.
 
 ---
 

@@ -5,6 +5,9 @@
 Implementation-level specification for converting official
 nomenclature Excel files into normalized CSV outputs.
 
+External consumer guarantees are defined in `docs/PRD.md` under Section 7.8
+"External Contract" and are normative for downstream integrations.
+
 ---
 
 ## 2. Input Contract

@@ -168,6 +168,23 @@ Command is Typer-based and supports:
 (With a single command, the installed CLI can also be invoked directly in
 single-command mode.)
 
+### 7.8 External Contract
+
+For every valid input Excel workbook, the tool guarantees exactly three CSV
+outputs, produced with a stable external contract for downstream systems
+(including Spring Batch jobs):
+
+- `Nomenclature` sheet → `nomenclature.csv`
+- `Non Renouvelés` sheet → `non_renouveles.csv`
+- `Retraits` sheet → `retraits.csv`
+
+Contract guarantees:
+
+- Exactly these 3 files are produced per input workbook.
+- File encoding is UTF-8.
+- CSV delimiter is stable (default `,`, configurable at runtime).
+- The header row is always the first row of each CSV file.
+
 ---
 
 ## 8. Failure Conditions
