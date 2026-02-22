@@ -124,14 +124,26 @@ For each sheet:
 
 If extracted data rows count is 0: fail.
 
-### 7.4 Schema Normalization
+### 7.4 Cell Value Normalization
+
+During extraction, cell values are cleaned:
+
+- Embedded newlines (`\n`, `\r`, `\r\n`) are replaced with a single space.
+- Consecutive spaces are collapsed to one.
+- This ensures every CSV data row occupies exactly one line.
+
+Some Excel cells (e.g. CONDITIONNEMENT, DOSAGE) contain literal line breaks
+from the source data. Without flattening, these produce multi-line CSV rows
+that break simple line-oriented consumers.
+
+### 7.5 Schema Normalization
 
 After extraction:
 
 - Remove columns where every data value is empty
 - Preserve order of kept columns exactly
 
-### 7.5 CSV Output
+### 7.6 CSV Output
 
 Generate exactly:
 
@@ -147,7 +159,7 @@ Rules:
 - Correct CSV quoting/escaping
 - Parent directories created if missing
 
-### 7.6 CLI
+### 7.7 CLI
 
 Command is Typer-based and supports:
 

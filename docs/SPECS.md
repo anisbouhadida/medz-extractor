@@ -83,7 +83,20 @@ Blank rows inside data are skipped only when subsequent tabular data continues.
 This sparse-row footer rule intentionally avoids false positives for dense
 data rows containing values like `I=370MG/ML`.
 
-## 4.4 Empty Output Guard
+## 4.4 Cell Value Normalization
+
+During extraction, each cell value is:
+
+1. Converted to string and stripped of leading/trailing whitespace.
+2. Embedded newlines (`\r\n` → `\r` → `\n`) replaced with a single space.
+3. Consecutive spaces collapsed to one.
+
+This guarantees every CSV data row is a single line.
+
+Affected fields observed in practice: CONDITIONNEMENT, DOSAGE (nomenclature
+sheets contain cells with literal line breaks in the Excel source).
+
+## 4.5 Empty Output Guard
 
 If extraction yields 0 data rows: fail.
 

@@ -4,6 +4,9 @@ Responsibilities:
 - Detect the real header row (skip institutional header block).
 - Extract tabular data rows.
 - Stop extraction at footer markers (F=, I=, Nb:) or structural collapse.
+- Flatten embedded newlines in cell values so each CSV row is a
+  single line (some Excel cells, e.g. CONDITIONNEMENT and DOSAGE,
+  contain literal line breaks).
 """
 
 import logging
