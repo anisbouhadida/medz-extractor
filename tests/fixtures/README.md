@@ -10,12 +10,7 @@ reports placed here for regression testing.
 | --- | --- |
 | `2024-08.xlsx` | August 2024 |
 | `2024-12.xlsx` | December 2024 |
-| `2025-03.xlsx` | March 2025 |
-| `2025-05.xlsx` | May 2025 |
-| `2025-07.xlsx` | July 2025 |
-| `2025-09.xlsx` | September 2025 |
 | `2025-10.xlsx` | October 2025 |
-| `2025-11.xlsx` | November 2025 |
 | `2025-12.xlsx` | December 2025 |
 
 ## Adding a new fixture
