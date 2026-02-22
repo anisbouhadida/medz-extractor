@@ -24,17 +24,19 @@ DEFAULT_THRESHOLD: int = 6
 FOOTER_PREFIXES: Tuple[str, ...] = ("F=", "I=", "Nb:")
 
 
-def _cell_value_str(value: object) -> str:
-    """Convert a cell value to a stripped, single-line string.
+def _cell_to_str(value: object) -> str:
+    """Convert a single cell value to a clean, single-line string.
 
-    Embedded newlines (``\\n``, ``\\r``) are replaced with a
-    single space so that every CSV data row stays on one line.
+    Embedded newlines (``\\n``, ``\\r``) — common in Excel cells
+    for CONDITIONNEMENT and DOSAGE — are replaced with a single
+    space so that every CSV data row remains on one line.
+    Consecutive spaces are then collapsed.
 
     Parameters:
-        value: Raw cell value (may be None or any type).
+        value: Raw cell value (may be ``None`` or any type).
 
     Returns:
-        Stripped string representation, or empty string if None.
+        Stripped string representation, or ``""`` for ``None``.
     """
     if value is None:
         return ""
@@ -49,19 +51,19 @@ def _cell_value_str(value: object) -> str:
     return text
 
 
-def _count_non_empty(row: Tuple[object, ...]) -> int:
+def count_non_empty_cells(row: Tuple[object, ...]) -> int:
     """Count the number of non-empty cells in a row.
 
     Parameters:
         row: Tuple of cell values from openpyxl.
 
     Returns:
-        Count of cells that are neither None nor blank strings.
+        Number of cells that are neither None nor blank strings.
     """
-    return sum(1 for cell in row if _cell_value_str(cell) != "")
+    return sum(1 for cell in row if _cell_to_str(cell) != "")
 
 
-def _is_tabular(row: Tuple[object, ...], threshold: int) -> bool:
+def is_tabular_row(row: Tuple[object, ...], threshold: int) -> bool:
     """Check whether a row has enough non-empty cells to be tabular.
 
     Parameters:
@@ -71,28 +73,29 @@ def _is_tabular(row: Tuple[object, ...], threshold: int) -> bool:
     Returns:
         True if the row meets or exceeds the threshold.
     """
-    return _count_non_empty(row) >= threshold
+    return count_non_empty_cells(row) >= threshold
 
 
 # Maximum non-empty cells for a row to qualify as a footer.
 # Real footer rows are legend lines (e.g. "F=Fabriqué localement")
 # with very few populated cells; data rows with 6+ filled cells
 # that happen to contain "I=370MG/ML" are not footers.
-_FOOTER_MAX_NON_EMPTY: int = 3
+FOOTER_MAX_NON_EMPTY: int = 3
 
 
-def _is_footer_row(row: Tuple[object, ...]) -> bool:
+def is_footer_row(row: Tuple[object, ...]) -> bool:
     """Check whether a row is a footer legend line.
 
     A row is considered a footer only when **both** conditions hold:
 
     1. At least one cell starts with a known footer prefix
        (``F=``, ``I=``, ``Nb:``  — whitespace-tolerant).
-    2. The row has very few non-empty cells (≤ 3), indicating it
-       is a legend/note line rather than a regular data row.
+    2. The row has very few non-empty cells (≤ ``FOOTER_MAX_NON_EMPTY``),
+       indicating it is a legend/note line rather than a regular
+       data row.
 
-    This avoids false positives on data rows that contain values
-    such as ``I=370MG/ML`` in a dosage column.
+    This two-pronged check avoids false positives on data rows that
+    contain values such as ``I=370MG/ML`` in a dosage column.
 
     Parameters:
         row: Tuple of cell values.
@@ -100,10 +103,10 @@ def _is_footer_row(row: Tuple[object, ...]) -> bool:
     Returns:
         True if the row is a footer legend line.
     """
-    if _count_non_empty(row) > _FOOTER_MAX_NON_EMPTY:
+    if count_non_empty_cells(row) > FOOTER_MAX_NON_EMPTY:
         return False
     for cell in row:
-        text = _cell_value_str(cell)
+        text = _cell_to_str(cell)
         if text:
             for prefix in FOOTER_PREFIXES:
                 if text.startswith(prefix):
@@ -117,21 +120,25 @@ def detect_header_row(
 ) -> int:
     """Find the index of the real header row in a list of rows.
 
-    The header row is the first row with ``>= threshold`` non-empty
-    cells whose next row is also tabular (same threshold).
+    Skips the institutional header block by requiring two
+    consecutive tabular rows: the first is treated as the header
+    and the second as the first data row.  This heuristic avoids
+    misidentifying a single decorative row that happens to have
+    many filled cells.
 
     Parameters:
         rows: All rows from the sheet (list of value tuples).
-        threshold: Minimum non-empty cell count.
+        threshold: Minimum non-empty cell count for a row to be
+            considered tabular (8 for Nomenclature, 6 for others).
 
     Returns:
         0-based index of the header row within *rows*.
 
     Raises:
-        ValueError: If no header row is found.
+        ValueError: If no pair of consecutive tabular rows is found.
     """
     for i in range(len(rows) - 1):
-        if _is_tabular(rows[i], threshold) and _is_tabular(
+        if is_tabular_row(rows[i], threshold) and is_tabular_row(
             rows[i + 1], threshold
         ):
             logger.info(
@@ -152,27 +159,37 @@ def extract_data(
 ) -> Tuple[List[str], List[List[str]]]:
     """Extract header names and data rows, stopping at footer.
 
+    Walks rows after the header and stops when it encounters:
+
+    * A footer legend line (sparse row starting with ``F=``,
+      ``I=``, or ``Nb:``).
+    * Structural collapse — a blank row followed by no further
+      tabular content (i.e. the table has ended).
+
+    Blank rows that appear *within* the data (with more tabular
+    rows after them) are silently skipped.
+
     Parameters:
         rows: All rows from the sheet.
         header_index: Index of the header row (from
             :func:`detect_header_row`).
 
     Returns:
-        A tuple of ``(headers, data_rows)`` where *headers* is a
-        list of column name strings and *data_rows* is a list of
-        lists of string values.
+        ``(headers, data_rows)`` — *headers* is a list of column
+        name strings; *data_rows* is a list of lists of string
+        values with the same width as *headers*.
 
     Raises:
         ValueError: If extracted data has zero rows.
     """
-    header = [_cell_value_str(c) for c in rows[header_index]]
+    header = [_cell_to_str(c) for c in rows[header_index]]
     data_rows: List[List[str]] = []
 
     i = header_index + 1
     while i < len(rows):
         row = rows[i]
         # Check for footer markers.
-        if _is_footer_row(row):
+        if is_footer_row(row):
             logger.info(
                 "Footer marker detected at row index %d; "
                 "stopping extraction.",
@@ -180,17 +197,17 @@ def extract_data(
             )
             break
         # Check for structural collapse: blank row.
-        if _count_non_empty(row) == 0:
+        if count_non_empty_cells(row) == 0:
             # Look ahead: if no more tabular rows, stop.
             has_more_tabular = False
             for j in range(i + 1, len(rows)):
-                if _count_non_empty(rows[j]) == 0:
+                if count_non_empty_cells(rows[j]) == 0:
                     continue
-                if _is_footer_row(rows[j]):
+                if is_footer_row(rows[j]):
                     break
                 # Check if the next non-empty row is tabular
                 # (at least 2 non-empty cells as a minimal bar).
-                if _count_non_empty(rows[j]) >= 2:
+                if count_non_empty_cells(rows[j]) >= 2:
                     has_more_tabular = True
                 break
             if not has_more_tabular:
@@ -205,7 +222,7 @@ def extract_data(
             continue
 
         data_rows.append(
-            [_cell_value_str(c) for c in row]
+            [_cell_to_str(c) for c in row]
         )
         i += 1
 
@@ -226,21 +243,23 @@ def parse_sheet(
 ) -> Tuple[List[str], List[List[str]]]:
     """Parse a single worksheet into headers and data rows.
 
-    Orchestrates header detection, data extraction, and footer
-    removal for one sheet.
+    Orchestrates the full per-sheet pipeline: materialise rows,
+    detect the header, extract data, and stop at footer markers.
 
     Parameters:
-        ws: An openpyxl Worksheet object.
-        sheet_label: Human-readable label (e.g. ``"nomenclature"``),
-            used to select the threshold when *threshold* is None.
+        ws: An openpyxl ``Worksheet`` object (read-only is fine).
+        sheet_label: Human-readable label (e.g. ``"nomenclature"``
+            or the CSV filename).  Used to auto-select the header-
+            detection threshold when *threshold* is ``None``.
         threshold: Override for the header-detection threshold.
-            If None, uses 8 for nomenclature and 6 otherwise.
+            Defaults to 8 for nomenclature sheets, 6 for others.
 
     Returns:
-        A tuple of ``(headers, data_rows)``.
+        ``(headers, data_rows)`` ready for schema normalisation.
 
     Raises:
-        ValueError: On header-not-found or zero-data-rows.
+        ValueError: On header-not-found, empty sheet, or zero
+            data rows after footer removal.
     """
     if threshold is None:
         if "nomenclature" in sheet_label.lower():

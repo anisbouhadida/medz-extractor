@@ -21,19 +21,19 @@ EXPECTED_SHEETS: Dict[str, str] = {
 }
 
 
-def normalize_name(name: str) -> str:
+def normalize_sheet_name(name: str) -> str:
     """Normalize a sheet name for fuzzy comparison.
 
-    Applies:
-    - Unicode NFD decomposition to strip accents.
-    - Lowercasing.
-    - Collapsing whitespace and punctuation to single spaces.
+    Applies NFD decomposition to strip accents, lowercases the
+    result, and collapses runs of whitespace / punctuation into
+    a single space.  The output is suitable for direct equality
+    or prefix comparison against canonical sheet identifiers.
 
     Parameters:
-        name: The raw sheet name string.
+        name: The raw sheet name string from the workbook.
 
     Returns:
-        A normalized, comparable string.
+        A lowercased, accent-free, whitespace-collapsed string.
     """
     # NFD decomposition then strip combining marks (accents).
     decomposed = unicodedata.normalize("NFD", name)
@@ -53,22 +53,28 @@ def detect_sheets(
 ) -> Dict[str, str]:
     """Match workbook sheet names to the 3 expected canonical sheets.
 
-    Uses fuzzy matching (case-insensitive, accent-insensitive,
-    whitespace-tolerant) to locate each expected sheet.
+    Matching is case-insensitive, accent-insensitive, and tolerant
+    of extra whitespace, underscores, and dashes.  A sheet name
+    that starts with a canonical name (e.g. ``Nomenclature AOUT
+    2024``) is also accepted.
 
     Parameters:
-        sheet_names: List of actual sheet names from the workbook.
+        sheet_names: Actual sheet names from the workbook
+            (``wb.sheetnames``).
 
     Returns:
-        A dict mapping each actual sheet name to its output CSV
+        Dict mapping each *original* sheet name to its output CSV
         filename, e.g. ``{"Nomenclature": "nomenclature.csv", ...}``.
+        The dict preserves the original casing/accents in keys.
 
     Raises:
         ValueError: If one or more expected sheets cannot be found.
+            The message lists both the missing canonicals and the
+            available sheets for easy debugging.
     """
     # Build a lookup from normalized actual names to originals.
     normalized_actuals: Dict[str, str] = {
-        normalize_name(sn): sn for sn in sheet_names
+        normalize_sheet_name(sn): sn for sn in sheet_names
     }
 
     matched: Dict[str, str] = {}

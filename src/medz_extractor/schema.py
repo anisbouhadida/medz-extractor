@@ -17,12 +17,16 @@ def find_empty_columns(
 ) -> Set[int]:
     """Identify column indices where every data value is empty.
 
+    Iterates once through the data and short-circuits as soon as
+    all candidate columns are proven non-empty.
+
     Parameters:
-        headers: List of column header strings.
-        data_rows: List of data rows (each a list of strings).
+        headers: Column header strings (used only for width).
+        data_rows: Extracted data rows (each a list of strings).
 
     Returns:
-        A set of 0-based column indices that are entirely empty.
+        A set of 0-based column indices that are entirely empty
+        across all rows.
     """
     num_cols = len(headers)
     empty: Set[int] = set(range(num_cols))
@@ -45,15 +49,19 @@ def drop_empty_columns(
 ) -> Tuple[List[str], List[List[str]]]:
     """Remove columns that are entirely empty from headers and data.
 
-    Column order is preserved for non-empty columns.
+    Handles the Nov 2025 schema expansion (extra empty columns
+    appended to the sheet) and any other all-blank columns.
+    Column order is preserved for non-empty columns.  Rows that
+    are shorter than the header are padded with ``""``.
 
     Parameters:
         headers: Original column header strings.
         data_rows: Original data rows.
 
     Returns:
-        A tuple of ``(cleaned_headers, cleaned_data_rows)`` with
-        empty columns removed.
+        ``(cleaned_headers, cleaned_data_rows)`` with empty columns
+        removed.  If no columns are empty the inputs are returned
+        unchanged.
     """
     empty_indices = find_empty_columns(headers, data_rows)
 

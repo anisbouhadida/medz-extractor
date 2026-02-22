@@ -12,36 +12,36 @@ import pytest
 
 from medz_extractor.sheet_detector import (
     detect_sheets,
-    normalize_name,
+    normalize_sheet_name,
 )
 
 
-# ── normalize_name tests ────────────────────────────────────────
+# ── normalize_sheet_name tests ──────────────────────────────────
 
 
-class TestNormalizeName:
-    """Unit tests for the ``normalize_name`` helper."""
+class TestNormalizeSheetName:
+    """Unit tests for the ``normalize_sheet_name`` helper."""
 
     def test_lowercase(self) -> None:
         """Uppercased names are lowered."""
-        assert normalize_name("NOMENCLATURE") == "nomenclature"
+        assert normalize_sheet_name("NOMENCLATURE") == "nomenclature"
 
     def test_accent_removal(self) -> None:
         """Accented characters are reduced to base form."""
-        assert normalize_name("Non Renouvelés") == "non renouveles"
+        assert normalize_sheet_name("Non Renouvelés") == "non renouveles"
 
     def test_extra_spaces(self) -> None:
         """Multiple spaces collapse to a single space."""
-        assert normalize_name("Non   Renouvelés") == "non renouveles"
+        assert normalize_sheet_name("Non   Renouvelés") == "non renouveles"
 
     def test_underscores_and_dashes(self) -> None:
         """Underscores and dashes are treated as spaces."""
-        assert normalize_name("Non_Renouvelés") == "non renouveles"
-        assert normalize_name("Non-Renouvelés") == "non renouveles"
+        assert normalize_sheet_name("Non_Renouvelés") == "non renouveles"
+        assert normalize_sheet_name("Non-Renouvelés") == "non renouveles"
 
     def test_leading_trailing_whitespace(self) -> None:
         """Leading/trailing whitespace is stripped."""
-        assert normalize_name("  Retraits  ") == "retraits"
+        assert normalize_sheet_name("  Retraits  ") == "retraits"
 
 
 # ── detect_sheets tests ─────────────────────────────────────────

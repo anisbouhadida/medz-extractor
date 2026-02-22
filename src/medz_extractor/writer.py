@@ -25,20 +25,22 @@ def write_csv(
 ) -> Path:
     """Write headers and data rows to a UTF-8 CSV file.
 
-    Creates parent directories if they do not exist.
+    Creates parent directories automatically.  Uses
+    ``csv.QUOTE_MINIMAL`` so that fields containing the delimiter,
+    quotes, or newlines are properly escaped.
 
     Parameters:
-        headers: Column header strings.
+        headers: Column header strings (first row of CSV).
         data_rows: List of data rows (each a list of strings).
-        output_path: Destination file path.
-        delimiter: Field delimiter character.
+        output_path: Destination file path (``pathlib.Path``).
+        delimiter: Field delimiter (default ``","``).
 
     Returns:
-        The *output_path* that was written.
+        The *output_path* that was written, for easy chaining.
 
     Raises:
-        OSError: If the file cannot be written.
-        ValueError: If headers or data_rows are empty.
+        ValueError: If *headers* or *data_rows* is empty.
+        OSError: If the file cannot be created or written.
     """
     if not headers:
         raise ValueError(

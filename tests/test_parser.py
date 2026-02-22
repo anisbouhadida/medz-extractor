@@ -11,9 +11,9 @@ Covers:
 import pytest
 
 from medz_extractor.parser import (
-    _count_non_empty,
-    _is_footer_row,
-    _is_tabular,
+    count_non_empty_cells,
+    is_footer_row,
+    is_tabular_row,
     detect_header_row,
     extract_data,
 )
@@ -22,71 +22,71 @@ from medz_extractor.parser import (
 # ── Helper function tests ───────────────────────────────────────
 
 
-class TestCountNonEmpty:
-    """Unit tests for ``_count_non_empty``."""
+class TestCountNonEmptyCells:
+    """Unit tests for ``count_non_empty_cells``."""
 
     def test_all_empty(self) -> None:
         """Row of None/empty values returns 0."""
-        assert _count_non_empty((None, "", None, "")) == 0
+        assert count_non_empty_cells((None, "", None, "")) == 0
 
     def test_all_populated(self) -> None:
         """Row with all values returns correct count."""
-        assert _count_non_empty(("a", "b", "c")) == 3
+        assert count_non_empty_cells(("a", "b", "c")) == 3
 
     def test_mixed(self) -> None:
         """Row with a mix of empty and non-empty."""
-        assert _count_non_empty(("a", None, "c", "")) == 2
+        assert count_non_empty_cells(("a", None, "c", "")) == 2
 
 
-class TestIsTabular:
-    """Unit tests for ``_is_tabular``."""
+class TestIsTabularRow:
+    """Unit tests for ``is_tabular_row``."""
 
     def test_below_threshold(self) -> None:
         """Row with fewer non-empty cells than threshold."""
         row = ("a", None, None, None, None, None)
-        assert _is_tabular(row, 3) is False
+        assert is_tabular_row(row, 3) is False
 
     def test_at_threshold(self) -> None:
         """Row at exactly the threshold."""
         row = ("a", "b", "c", None, None, None)
-        assert _is_tabular(row, 3) is True
+        assert is_tabular_row(row, 3) is True
 
     def test_above_threshold(self) -> None:
         """Row above the threshold."""
         row = ("a", "b", "c", "d")
-        assert _is_tabular(row, 3) is True
+        assert is_tabular_row(row, 3) is True
 
 
 class TestIsFooterRow:
-    """Unit tests for ``_is_footer_row``."""
+    """Unit tests for ``is_footer_row``."""
 
     def test_f_equals(self) -> None:
         """Single-cell row starting with F= is a footer."""
-        assert _is_footer_row(("F= Fabricant",)) is True
+        assert is_footer_row(("F= Fabricant",)) is True
 
     def test_i_equals(self) -> None:
         """Single-cell row starting with I= is a footer."""
-        assert _is_footer_row(("I= Importateur",)) is True
+        assert is_footer_row(("I= Importateur",)) is True
 
     def test_nb_colon(self) -> None:
         """Single-cell row starting with Nb: is a footer."""
-        assert _is_footer_row(("Nb: note",)) is True
+        assert is_footer_row(("Nb: note",)) is True
 
     def test_footer_in_later_cell(self) -> None:
         """Footer marker can appear in any cell of a sparse row."""
-        assert _is_footer_row((None, "", "F= foo")) is True
+        assert is_footer_row((None, "", "F= foo")) is True
 
     def test_footer_with_few_cells(self) -> None:
         """Row with ≤ 3 non-empty cells and a marker is footer."""
-        assert _is_footer_row(("F= Fab", "note", "x")) is True
+        assert is_footer_row(("F= Fab", "note", "x")) is True
 
     def test_non_footer(self) -> None:
         """Normal data row without markers is not a footer."""
-        assert _is_footer_row(("data", "123", "abc")) is False
+        assert is_footer_row(("data", "123", "abc")) is False
 
     def test_empty_row_not_footer(self) -> None:
         """Empty row is not identified as a footer."""
-        assert _is_footer_row((None, None)) is False
+        assert is_footer_row((None, None)) is False
 
     def test_data_row_with_i_equals_not_footer(self) -> None:
         """Data row with I= in a dosage column is NOT a footer.
@@ -100,12 +100,12 @@ class TestIsFooterRow:
             "val8", "val9", "val10", "val11", "val12",
             "val13", "val14", "val15", "val16", "val17",
         )
-        assert _is_footer_row(row) is False
+        assert is_footer_row(row) is False
 
     def test_data_row_with_f_equals_not_footer(self) -> None:
         """Populated data row containing F= is not a footer."""
         row = tuple(["v"] * 6 + ["F=something"])
-        assert _is_footer_row(row) is False
+        assert is_footer_row(row) is False
 
 
 # ── Header detection tests ──────────────────────────────────────
