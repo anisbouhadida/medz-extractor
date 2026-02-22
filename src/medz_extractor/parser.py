@@ -22,7 +22,10 @@ FOOTER_PREFIXES: Tuple[str, ...] = ("F=", "I=", "Nb:")
 
 
 def _cell_value_str(value: object) -> str:
-    """Convert a cell value to a stripped string.
+    """Convert a cell value to a stripped, single-line string.
+
+    Embedded newlines (``\\n``, ``\\r``) are replaced with a
+    single space so that every CSV data row stays on one line.
 
     Parameters:
         value: Raw cell value (may be None or any type).
@@ -32,7 +35,15 @@ def _cell_value_str(value: object) -> str:
     """
     if value is None:
         return ""
-    return str(value).strip()
+    text = str(value).strip()
+    # Flatten embedded newlines to a single space.
+    text = text.replace("\r\n", " ").replace("\r", " ").replace(
+        "\n", " ",
+    )
+    # Collapse multiple consecutive spaces into one.
+    while "  " in text:
+        text = text.replace("  ", " ")
+    return text
 
 
 def _count_non_empty(row: Tuple[object, ...]) -> int:
