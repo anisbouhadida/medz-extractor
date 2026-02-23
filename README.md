@@ -2,7 +2,6 @@
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![Python 3.14+](https://img.shields.io/badge/Python-3.14%2B-blue.svg)
-![Open Source](https://img.shields.io/badge/Open%20Source-Community%20Driven-success)
 [![CI](https://github.com/anisbouhadida/medz-extractor/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/anisbouhadida/medz-extractor/actions/workflows/ci.yml)
 [![Process](https://github.com/anisbouhadida/medz-extractor/actions/workflows/process.yml/badge.svg?branch=main)](https://github.com/anisbouhadida/medz-extractor/actions/workflows/process.yml)
 ![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/anisbouhadida/052a1ce9644be82211ca077a0857bb0b/raw/medz-extractor-coverage.json)
