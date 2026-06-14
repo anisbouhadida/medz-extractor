@@ -1,250 +1,279 @@
 # medz-extractor
 
-![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
-![Python 3.14+](https://img.shields.io/badge/Python-3.14%2B-blue.svg)
-[![CI](https://github.com/anisbouhadida/medz-extractor/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/anisbouhadida/medz-extractor/actions/workflows/ci.yml)
-[![Process](https://github.com/anisbouhadida/medz-extractor/actions/workflows/process.yml/badge.svg?branch=main)](https://github.com/anisbouhadida/medz-extractor/actions/workflows/process.yml)
-![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/anisbouhadida/052a1ce9644be82211ca077a0857bb0b/raw/medz-extractor-coverage.json)
+`medz-extractor` is a small Python script that converts official Algerian
+pharmaceutical nomenclature Excel workbooks into stable CSV files.
 
-`medz-extractor` is a rule-based CLI that converts official Algerian pharmaceutical nomenclature Excel reports into clean CSV datasets.
+It is built for Algerian developers who need reproducible, scriptable input for
+data pipelines, batch loaders, dashboards, APIs, or local analysis.
 
-It is built for reproducible release-cycle processing, open-source collaboration, and reliable downstream ingestion.
+This repository is open source and maintained by a solo software engineer. The
+project intentionally stays small: one preprocessing script, clear tests, and
+documented behavior.
 
-Releases are irregular, but input and output naming must follow the `YYYY-MM` convention.
+## Why This Exists
 
----
+Official nomenclature Excel files are useful, but they are not ready for direct
+machine ingestion. They usually contain:
 
-## Table of Contents
+- institutional header rows before the real table,
+- footer/legend rows after the data,
+- accented and sometimes inconsistent sheet names,
+- embedded newlines inside cells,
+- occasional extra empty columns.
 
-- [medz-extractor](#medz-extractor)
-  - [Table of Contents](#table-of-contents)
-  - [Why this project](#why-this-project)
-  - [Features](#features)
-  - [External contract](#external-contract)
-  - [Quick start](#quick-start)
-    - [1) Install](#1-install)
-    - [2) Add an input file](#2-add-an-input-file)
-    - [3) Run](#3-run)
-  - [Usage](#usage)
-    - [Failure modes](#failure-modes)
-  - [How it works](#how-it-works)
-  - [Project structure](#project-structure)
-  - [Quality and CI](#quality-and-ci)
-  - [Contributing](#contributing)
-  - [AI-Augmented Development](#ai-augmented-development)
-  - [License](#license)
+This script turns those files into clean CSVs that downstream systems can
+consume deterministically.
 
----
+## How It Fits In The Broader System
 
-## Why this project
+The intended pipeline is:
 
-Official nomenclature `.xlsx` releases are not directly usable as structured datasets:
+```text
+Download official Excel files
+        |
+        v
+input/YYYY-MM.xlsx
+        |
+        v
+python3 scripts/extract_medz.py input output
+        |
+        v
+output/YYYY-MM/*.csv
+        |
+        v
+Spring Batch ETL application
+        |
+        v
+Database
+```
 
-- they include an institutional header block above the table,
-- footer notes/legend rows at the end,
-- and occasional schema drift (for example: extra empty columns).
-
-This tool makes the extraction process consistent, explicit, and easy to automate.
-
----
+The Python extractor does not download files, call Java, connect to a database,
+or know about the database schema. Its only responsibility is the Excel-to-CSV
+preprocessing step.
 
 ## Features
 
-- Fuzzy sheet detection for the 3 required sheets (`Nomenclature`, `Non Renouvelés`, `Retraits`)
-- Structural header detection (instead of hardcoded row numbers)
-- Footer-aware extraction with fail-fast behavior
-- Empty-column cleanup while preserving column order
-- UTF-8 CSV export with configurable delimiter
-- CI-ready workflow for release-cycle processing
+- Processes every `YYYY-MM.xlsx` workbook in an input directory.
+- Produces one output folder per release month.
+- Detects the three required sheets with accent/case/spacing tolerant matching.
+- Detects real table headers structurally instead of using fixed row numbers.
+- Stops before footer/legend rows.
+- Flattens embedded cell newlines so CSV consumers get one logical row per line.
+- Drops columns that are empty across all data rows.
+- Archives existing CSV outputs before replacing them.
+- Fails fast with readable error messages.
 
----
+## Requirements
 
-## External contract
+- Python 3.14 or newer
+- `openpyxl`
 
-For every valid input Excel workbook, `medz-extractor` guarantees exactly these
-three CSV outputs for downstream consumers (including Spring Batch jobs):
-
-- `Nomenclature` sheet → `nomenclature.csv`
-- `Non Renouvelés` sheet → `non_renouveles.csv`
-- `Retraits` sheet → `retraits.csv`
-
-Contract guarantees:
-
-- exactly these 3 files are produced per input workbook,
-- UTF-8 encoding,
-- stable delimiter (default `,`, configurable),
-- header row always first in each CSV.
-
----
-
-## Quick start
-
-### 1) Install
+Install runtime dependencies:
 
 ```bash
-git clone https://github.com/anisbouhadida/medz-extractor.git
-cd medz-extractor
-pip install -e .
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
 ```
 
-### 2) Add an input file
+For development and tests:
+
+```bash
+.venv/bin/pip install -r requirements-dev.txt
+```
+
+## Quick Start
+
+Put one or more official Excel files in `input/`:
 
 ```text
-input/2025-11.xlsx
+input/
+├── 2025-11.xlsx
+└── 2025-12.xlsx
 ```
 
-### 3) Run
+Run the extractor:
 
 ```bash
-medz-extractor input/2025-11.xlsx --out output/2025-11/
+.venv/bin/python scripts/extract_medz.py input output
 ```
 
----
-
-## Usage
-
-Both CLI forms are supported:
-
-```bash
-medz-extractor input/2025-11.xlsx --out output/2025-11/
-medz-extractor process input/2025-11.xlsx --out output/2025-11/
-```
-
-Optional delimiter:
-
-```bash
-medz-extractor input/2025-11.xlsx --out output/2025-11/ --delimiter ';'
-```
-
-Generated files:
+Generated CSVs:
 
 ```text
-output/YYYY-MM/
-├── nomenclature.csv
-├── non_renouveles.csv
-└── retraits.csv
+output/
+├── 2025-11/
+│   ├── nomenclature.csv
+│   ├── non_renouveles.csv
+│   └── retraits.csv
+└── 2025-12/
+    ├── nomenclature.csv
+    ├── non_renouveles.csv
+    └── retraits.csv
 ```
 
-### Failure modes
+Typical shell pipeline:
 
-On failure, the CLI exits with a non-zero code and logs a clear error.
-Typical cases include:
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-- missing required sheet(s) (`Missing expected sheet(s): ...`)
-- header row not detected (`Header row not found: ...`)
-- extracted table is empty (`Extracted data has 0 rows ...`)
-- CSV write failure (`CSV write failed for '...': ...`)
-- invalid/unreadable input path (`Invalid value for 'INPUT_FILE': Path '...' does not exist.`)
+.venv/bin/python scripts/extract_medz.py input output
+java -jar spring-batch-etl.jar output
+```
 
----
+## Output Contract
 
-## How it works
+For every valid workbook, exactly three CSV files are produced:
 
-1. Open workbook in read-only mode.
-2. Detect expected sheets with accent/case/spacing tolerant matching.
-3. Detect real table header row from structure (tabular thresholds).
-4. Extract data rows and stop before footer/structural collapse.
-5. Drop entirely empty columns.
-6. Write normalized CSVs to the output folder.
+| Workbook sheet | CSV file |
+| --- | --- |
+| `Nomenclature` | `nomenclature.csv` |
+| `Non Renouvelés` | `non_renouveles.csv` |
+| `Retraits` | `retraits.csv` |
 
-If a required sheet is missing, header is not found, extracted data is empty, or CSV writing fails, the command exits with a clear non-zero error.
+CSV guarantees:
 
----
+- UTF-8 encoding
+- comma delimiter
+- header row first
+- deterministic output for identical workbook content
 
-## Project structure
+There is no `--delimiter` option. The delimiter is fixed so the Spring Batch
+loader has one stable contract.
+
+## Archive Behavior
+
+If CSV files already exist for a month, they are archived before being replaced.
+
+For normal repository usage:
 
 ```text
-src/medz_extractor/
-├── cli.py             # Typer CLI entrypoint
-├── sheet_detector.py  # fuzzy sheet matching
-├── parser.py          # structural parsing (header/footer/table)
-├── schema.py          # empty-column normalization
-└── writer.py          # CSV writing
+archive/
+└── 2025-12/
+    └── 20260614T153022Z/
+        ├── nomenclature.csv
+        ├── non_renouveles.csv
+        └── retraits.csv
+```
+
+The script writes new CSVs to a staging directory first. Existing outputs are
+archived only after the new workbook was parsed and all three replacement CSVs
+were written. If extraction fails, current outputs are left untouched.
+
+Technically, the default archive directory is created beside the selected
+`output` directory. Running `scripts/extract_medz.py input output` creates
+`archive/` in the repository root.
+
+## Failure Modes
+
+The script exits with code `1` when:
+
+- the input directory does not exist,
+- no `.xlsx` files are found,
+- an input filename does not match `YYYY-MM.xlsx`,
+- a workbook cannot be opened,
+- a required sheet is missing,
+- a header row cannot be detected,
+- a sheet produces zero data rows,
+- CSV writing fails,
+- archiving or promotion fails.
+
+Logs are written to stderr through Python's standard `logging` module.
+
+## Project Layout
+
+```text
+scripts/
+└── extract_medz.py       # extractor script and importable helper functions
 
 tests/
-├── test_sheet_detector.py
-├── test_parser.py
-├── test_schema.py
-└── test_writer.py
+├── fixtures/            # representative official-format workbooks
+├── golden/              # expected CSV outputs for regression tests
+└── test_*.py            # unit, pipeline, and regression tests
+
+docs/
+├── PRD.md               # project/product context
+└── SPECS.md             # implementation-level behavior
 ```
 
-Detailed parsing/behavior rules: [docs/SPECS.md](docs/SPECS.md)
+## Development
 
----
-
-## Quality and CI
-
-Run tests locally:
+Run tests:
 
 ```bash
-pytest
+.venv/bin/pytest
 ```
 
-Run with coverage:
+Run lint and format checks:
 
 ```bash
-pytest --cov=medz_extractor --cov-report=term-missing
+.venv/bin/ruff check scripts/ tests/
+.venv/bin/ruff format --check scripts/ tests/
 ```
 
-**Test coverage** focuses on sheet-name fuzzy matching, header/footer
-detection, structural-collapse stopping, blank-row handling, empty-column
-dropping, CSV writing, and end-to-end regression against golden outputs.
+Run against the committed sample inputs:
 
-GitHub Actions workflows:
+```bash
+.venv/bin/python scripts/extract_medz.py input output
+```
 
-- **CI** (`.github/workflows/ci.yml`) — runs on every push/PR to `main`;
-  lints with Ruff, runs the full test suite with coverage, and updates the
-  coverage badge via a GitHub Gist.
-- **Process** (`.github/workflows/process.yml`) — runs on push to `main` when
-  `input/**.xlsx` changes; generates `output/<YYYY-MM>/*.csv` and auto-commits.
+The committed golden tests protect the CSV contract. If parser behavior changes,
+review the generated CSVs carefully before updating golden files.
 
-<details>
-<summary>One-time setup for the dynamic coverage badge</summary>
+## CI And Releases
 
-1. Create a **public** GitHub Gist (content doesn't matter — it will be
-   overwritten by CI). Copy its **Gist ID** from the URL.
-2. Create a **classic Personal Access Token** with only the `gist` scope
-   (Settings → Developer settings → Tokens (classic)).
-3. In your repo → **Settings → Secrets and variables → Actions**:
-   - Add a **secret** `GIST_TOKEN` with the PAT.
-   - Add a **variable** `COVERAGE_GIST_ID` with the Gist ID.
-4. Replace `COVERAGE_GIST_ID` in the badge URL in this README with the
-   actual Gist ID.
+Pull requests run a focused CI workflow:
 
-After the first push to `main`, the badge updates automatically.
-</details>
+- Ruff lint check
+- Ruff format check
+- Pytest test suite
 
----
+Releases are created from Git tags that look like `v1.2.3`. A release contains:
+
+- `extract_medz.py`
+- `requirements.txt`
+- `README.md`
+- `LICENSE`
+- `docs/`
+- SHA-256 checksums
+
+Users who only need the script can download the release archive instead of
+cloning the full repository.
 
 ## Contributing
 
-Contributions are welcome.
+Contributions are welcome, especially from Algerian developers using public
+health data in real systems.
 
-This project is currently maintained by a solo developer, so focused, well-scoped pull requests are especially appreciated.
+Good contributions include:
 
-1. Fork the repository.
-2. Add/update an input file under `input/YYYY-MM.xlsx` (required naming format) or improve extraction logic/tests.
-3. Open a pull request with a clear description of the change.
+- support for new official workbook layout changes,
+- clearer failure messages,
+- additional representative fixtures,
+- documentation improvements,
+- tests for edge cases found in real releases.
 
-Before contributing, please read:
+Please keep the project focused on Excel-to-CSV preprocessing. Database loading,
+web scraping, APIs, dashboards, and Spring Batch jobs belong in separate
+projects.
 
-- [docs/PRD.md](docs/PRD.md)
-- [docs/SPECS.md](docs/SPECS.md)
-
----
-
-## AI-Augmented Development
-
-This project uses an AI-augmented development workflow:
-
-- ChatGPT (GPT-5.2, Thinking mode): early brainstorming and idea refinement.
-- Perplexity: targeted technical research.
-- GitHub Copilot (Claude Opus 4.6, GPT-5.3-Codex): implementation support and iteration.
-
-All final design and code decisions were reviewed and validated by the maintainer.
-
----
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 
 ## License
 
-[MIT](LICENSE)
+This project is licensed under the
+[GNU Affero General Public License v3.0 or later](LICENSE)
+(`AGPL-3.0-or-later`).
+
+Why AGPL for this project:
+
+- Algerian developers can use, study, copy, and modify the script freely.
+- The maintainer copyright and license notices must be preserved.
+- Modified versions that are distributed must remain under the same license.
+- Modified versions used to provide a network service must offer their source
+  code to the users of that service.
+- Commercial use is allowed, including charging for hosting, support, or
+  production infrastructure costs, as long as the license terms are respected.
+
+This keeps the extractor open for the community while allowing sustainable
+operation of broader systems built around it.

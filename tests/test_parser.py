@@ -10,7 +10,7 @@ Covers:
 
 import pytest
 
-from medz_extractor.parser import (
+from scripts.extract_medz import (
     count_non_empty_cells,
     is_footer_row,
     is_tabular_row,

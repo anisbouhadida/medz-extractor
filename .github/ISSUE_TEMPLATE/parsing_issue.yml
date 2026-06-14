@@ -1,0 +1,51 @@
+name: Workbook parsing issue
+description: Report an official workbook layout or extraction problem.
+title: "[Parsing]: "
+labels: ["parsing", "data"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this when an official Excel workbook is valid but the extractor cannot parse it correctly.
+  - type: input
+    id: release-month
+    attributes:
+      label: Release month
+      description: Use the workbook filename/month if possible.
+      placeholder: "2026-04"
+    validations:
+      required: true
+  - type: dropdown
+    id: affected-output
+    attributes:
+      label: Affected output
+      options:
+        - nomenclature.csv
+        - non_renouveles.csv
+        - retraits.csv
+        - multiple outputs
+        - extraction fails before outputs are written
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong?
+      description: Explain the missing rows, bad headers, wrong stop point, sheet detection issue, or other parsing problem.
+      placeholder: The script stops before the real end of the Retraits sheet...
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Include row numbers, sheet names, screenshots, small excerpts, or a public link to the official file when possible. Do not upload private data.
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      render: text
+    validations:
+      required: false

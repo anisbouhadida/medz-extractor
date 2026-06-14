@@ -1,0 +1,39 @@
+name: Feature or documentation request
+description: Suggest a small improvement to the script, docs, tests, or contributor workflow.
+title: "[Request]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Explain the use case and who benefits.
+      placeholder: Algerian developers integrating the extractor need clearer docs for...
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Describe the smallest useful change.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - extractor script
+        - documentation
+        - tests or fixtures
+        - CI or contributor workflow
+        - other
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional notes
+      description: Add links, examples, or alternatives considered.
+    validations:
+      required: false

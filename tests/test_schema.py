@@ -7,7 +7,7 @@ Covers:
 - Schema expansion columns (all empty) are removed.
 """
 
-from medz_extractor.schema import drop_empty_columns, find_empty_columns
+from scripts.extract_medz import drop_empty_columns, find_empty_columns
 
 
 # ── find_empty_columns tests ────────────────────────────────────

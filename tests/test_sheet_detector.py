@@ -10,7 +10,7 @@ Covers:
 
 import pytest
 
-from medz_extractor.sheet_detector import (
+from scripts.extract_medz import (
     detect_sheets,
     normalize_sheet_name,
 )

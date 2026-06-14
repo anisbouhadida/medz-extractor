@@ -4,7 +4,7 @@ You are an AI pair programmer working on the `medz-extractor` project.
 
 ## Project context
 
-- `medz-extractor` is a deterministic, open-source preprocessing tool that converts official Algerian pharmaceutical nomenclature Excel reports into clean CSV datasets.
+- `medz-extractor` is a deterministic preprocessing script used inside a larger shell/Spring Batch ETL pipeline.
 - Inputs are `.xlsx` files that contain:
   - An institutional header block (non-tabular text) above the real table header row.
   - A real table header row (column names).
@@ -13,7 +13,7 @@ You are an AI pair programmer working on the `medz-extractor` project.
   - Occasional schema expansion (e.g., extra empty columns starting Nov 2025) that must be dropped.
 - Outputs:
   - Exactly one CSV per expected sheet: `nomenclature.csv`, `non_renouveles.csv`, `retraits.csv`.
-- The tool must run both locally and via GitHub Actions (CI).
+- The script must run locally and in CI without installing this repo as a Python package.
 
 ## Key requirements (must follow)
 
@@ -65,7 +65,7 @@ You are an AI pair programmer working on the `medz-extractor` project.
 6. CSV output
 
 - Encoding: UTF-8.
-- Use a stable delimiter (configurable, but default must be consistent across all outputs).
+- Use a stable comma delimiter across all outputs.
 - Preserve the column order from the detected header.
 - Quote and escape fields correctly to preserve commas, semicolons, and other delimiters inside text.
 - Do not write partial or inconsistent CSVs; fail clearly on write errors.
@@ -92,9 +92,10 @@ You are an AI pair programmer working on the `medz-extractor` project.
 
 ## Repository conventions
 
-- CLI entry point:
-  - Use `src/medz_extractor/cli.py` (or equivalent) with a Typer-based CLI.
-  - Support a command of the form: `process <input.xlsx> --out <output_dir>`.
+- Script entry point:
+  - Use `scripts/extract_medz.py`.
+  - Support `python3 scripts/extract_medz.py input output`.
+- Archive existing current CSVs under `archive/YYYY-MM/<timestamp>/` before replacement.
 - When running in the repository, keep outputs under `output/YYYY-MM/`.
 - Normalize output file names exactly to:
   - `nomenclature.csv`

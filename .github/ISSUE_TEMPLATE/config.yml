@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Project documentation
+    url: https://github.com/anisbouhadida/medz-extractor#readme
+    about: Read setup, usage, output contract, archive behavior, and contribution notes.

@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from medz_extractor.writer import write_csv
+from scripts.extract_medz import write_csv
 
 
 # ── write_csv tests ─────────────────────────────────────────────
@@ -46,26 +46,12 @@ class TestWriteCsv:
             ["Name", "Description"],
             [["Drug A", "contains, comma"]],
             out,
-            delimiter=",",
         )
         with out.open(encoding="utf-8", newline="") as fh:
             reader = csv.reader(fh)
             rows = list(reader)
         # The second data field must survive round-trip.
         assert rows[1][1] == "contains, comma"
-
-    def test_semicolon_delimiter(self, tmp_path: Path) -> None:
-        """A non-default delimiter is honoured."""
-        out = tmp_path / "semi.csv"
-        write_csv(
-            ["A", "B"],
-            [["1", "2"]],
-            out,
-            delimiter=";",
-        )
-        content = out.read_text(encoding="utf-8")
-        assert "A;B" in content
-        assert "1;2" in content
 
     def test_returns_path(self, tmp_path: Path) -> None:
         """The written file path is returned."""

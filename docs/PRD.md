@@ -1,243 +1,144 @@
-# Nomenclature Pre-Processing Tool — PRD (v1)
+# Nomenclature Preprocessing Script — PRD
 
-## 1. Overview
+## Overview
 
-This project provides a rule-based preprocessing tool that converts
-official Excel nomenclature release files into clean CSV datasets.
+`medz-extractor` is an open-source preprocessing script for Algerian
+pharmaceutical nomenclature data.
 
-The system is designed for:
+It converts official Excel workbooks into stable CSV files that can be loaded
+by a downstream Spring Batch ETL application or reused by other developers.
 
-- Community contribution
-- Reproducible processing
-- Automation via GitHub Actions
-- Downstream ingestion by external systems
+The project is maintained by a solo software engineer and is designed to stay
+small, readable, and easy to run from a shell script.
 
-The tool scope is strictly:
+## Audience
 
-- Reading Excel `.xlsx` files
-- Cleaning structural artifacts
-- Exporting normalized CSV files
+Primary users:
 
-No database logic or network calls are included in the processing pipeline.
+- Algerian developers building health-data tools.
+- Developers integrating official nomenclature releases into databases.
+- Maintainers of the broader ETL system that downloads workbooks, runs this
+  extractor, and loads CSVs through Spring Batch.
 
----
+Secondary users:
 
-## 2. Problem Statement
+- Open-source contributors who want to improve parsing reliability.
+- Data engineers who need deterministic CSV outputs from official Excel files.
 
-Official Excel release files include non-tabular report structure that blocks
-direct ingestion:
+## Problem
 
-- Institutional header block above the table
-- Footer notes/legend lines
-- Occasional schema expansion (extra empty columns)
+Official nomenclature Excel files are not directly suitable for automated
+loading because they may contain:
 
-Manual cleanup is error-prone and non-reproducible.
+- institutional header blocks above the actual data table,
+- footer notes and legends after the table,
+- accented and inconsistent sheet names,
+- embedded newlines in cells,
+- extra empty columns introduced by layout changes.
 
----
+Manual cleanup is slow and difficult to reproduce.
 
-## 3. Objectives
+## Goals
 
-Build a simple application that:
+- Process all `input/*.xlsx` files in one command.
+- Require release filenames to follow `YYYY-MM.xlsx`.
+- Produce one `output/YYYY-MM/` folder per workbook.
+- Generate exactly three CSV files per workbook.
+- Keep CSV formatting stable for Spring Batch ingestion.
+- Archive current month CSVs before replacing them.
+- Leave existing outputs untouched when replacement extraction fails.
+- Keep the runtime interface simple enough for shell automation.
+- Keep implementation transparent for open-source review.
 
-1. Reads one Excel input file
-2. Detects and validates the 3 expected sheets
-3. Detects the true header row structurally
-4. Extracts table rows and stops before footer blocks
-5. Drops entirely empty columns
-6. Writes standardized UTF-8 CSV outputs
-7. Fails fast with actionable errors
+## Non-Goals
 
----
+- No file downloading or web scraping.
+- No database access.
+- No Spring Batch execution.
+- No API, web UI, or dashboard.
+- No dynamic delimiter selection.
+- No dry-run mode.
+- No installable Python package or console entry point.
+- No enrichment, deduplication, or cross-release diffing.
 
-## 4. Non-Goals (v1)
+## System Context
 
-- No data enrichment
-- No cross-release diffing
-- No deduplication
-- No database integration
-- No web/API/UI layer
+The broader system is expected to look like this:
 
----
+```text
+Downloader or manual download
+        |
+        v
+input/YYYY-MM.xlsx
+        |
+        v
+medz-extractor
+        |
+        v
+output/YYYY-MM/*.csv
+        |
+        v
+Spring Batch ETL
+        |
+        v
+Database
+```
 
-## 5. Users
+Only the `medz-extractor` step is implemented in this repository.
 
-Primary:
+## External Contract
 
-- Maintainer
-- Open-source contributors
+For every valid workbook:
 
-Secondary:
+| Logical sheet | Output file |
+| --- | --- |
+| `Nomenclature` | `nomenclature.csv` |
+| `Non Renouvelés` | `non_renouveles.csv` |
+| `Retraits` | `retraits.csv` |
 
-- Systems ingesting generated CSV files
-
----
-
-## 6. High-Level Workflow
-
-1. User provides `input/YYYY-MM.xlsx`
-2. CLI loads workbook in read-only mode
-3. Expected sheets are detected with fuzzy name matching
-4. Each sheet is parsed structurally
-5. Empty columns are removed
-6. CSV files are written to `output/YYYY-MM/`
-
----
-
-## 7. Functional Requirements
-
-### 7.1 Input
-
-- Accepted format: `.xlsx` only
-- Typical location: `input/YYYY-MM.xlsx` (required naming format)
-- Release cadence is irregular, but file naming must strictly remain `YYYY-MM`.
-
-### 7.2 Sheet Detection
-
-Workbook must contain expected sheets mapped to:
-
-- `nomenclature.csv`
-- `non_renouveles.csv`
-- `retraits.csv`
-
-Matching behavior:
-
-- Case-insensitive
-- Accent-insensitive
-- Tolerant to repeated spaces, `_`, `-`
-- Allows canonical-name suffixes (e.g., `Nomenclature AOUT 2024`)
-
-If any expected sheet is missing: fail immediately.
-
-### 7.3 Structural Parsing
-
-For each sheet:
-
-1. Detect header row as first row with at least threshold non-empty cells
-   where the next row is also tabular.
-2. Thresholds:
-   - Nomenclature: 8
-   - Other sheets: 6
-3. Data starts at row immediately after header.
-4. Stop extraction on:
-   - Footer legend row (marker `F=`, `I=`, `Nb:`) when row is sparse
-   - Structural collapse (blank row followed by no further tabular row)
-
-If extracted data rows count is 0: fail.
-
-### 7.4 Cell Value Normalization
-
-During extraction, cell values are cleaned:
-
-- Embedded newlines (`\n`, `\r`, `\r\n`) are replaced with a single space.
-- Consecutive spaces are collapsed to one.
-- This ensures every CSV data row occupies exactly one line.
-
-Some Excel cells (e.g. CONDITIONNEMENT, DOSAGE) contain literal line breaks
-from the source data. Without flattening, these produce multi-line CSV rows
-that break simple line-oriented consumers.
-
-### 7.5 Schema Normalization
-
-After extraction:
-
-- Remove columns where every data value is empty
-- Preserve order of kept columns exactly
-
-### 7.6 CSV Output
-
-Generate exactly:
-
-- `output/YYYY-MM/nomenclature.csv`
-- `output/YYYY-MM/non_renouveles.csv`
-- `output/YYYY-MM/retraits.csv`
-
-Rules:
+CSV contract:
 
 - UTF-8 encoding
-- Stable delimiter (default `,`, configurable)
-- Header row written first
-- Correct CSV quoting/escaping
-- Parent directories created if missing
+- comma delimiter
+- header row first
+- deterministic output for identical workbook content
+- exactly three CSV files per valid workbook
 
-### 7.7 CLI
+## Archive Contract
 
-Command is Typer-based and supports:
+When replacing outputs for `YYYY-MM`, existing `output/YYYY-MM/*.csv` files are
+moved to:
 
-- `medz-extractor <input.xlsx> --out <output_dir>`
+```text
+archive/YYYY-MM/YYYYMMDDTHHMMSSZ/
+```
 
-(With a single command, the installed CLI can also be invoked directly in
-single-command mode.)
+The archive directory is created beside the selected output directory. With the
+standard command `python3 scripts/extract_medz.py input output`, this means
+`archive/` is created in the repository root.
 
-### 7.8 External Contract
+New CSVs are staged first. Existing outputs are archived only after staging
+succeeds, so failed extractions do not remove current data.
 
-For every valid input Excel workbook, the tool guarantees exactly three CSV
-outputs, produced with a stable external contract for downstream systems
-(including Spring Batch jobs):
+## Success Criteria
 
-- `Nomenclature` sheet → `nomenclature.csv`
-- `Non Renouvelés` sheet → `non_renouveles.csv`
-- `Retraits` sheet → `retraits.csv`
+A release is processed successfully when:
 
-Contract guarantees:
+- every input workbook has a valid `YYYY-MM.xlsx` filename,
+- every workbook contains the three expected logical sheets,
+- every required sheet produces at least one data row,
+- all three CSV files are written for every workbook,
+- old outputs, when present, are archived before replacement,
+- the script exits with code `0`.
 
-- Exactly these 3 files are produced per input workbook.
-- File encoding is UTF-8.
-- CSV delimiter is stable (default `,`, configurable at runtime).
-- The header row is always the first row of each CSV file.
+Any violation fails the run with exit code `1` and a readable log message.
 
----
+## Open-Source Maintenance Principles
 
-## 8. Failure Conditions
-
-Processing must stop on:
-
-- Missing expected sheet
-- Header row not found
-- Zero extracted data rows
-- CSV write failure
-
-Errors must be explicit and human-readable.
-
----
-
-## 9. Reproducibility
-
-Given identical workbook content, generated CSV content must be identical.
-
-No randomness, network access, or time-dependent data transformation is used.
-(Execution logs may include timestamps.)
-
----
-
-## 10. Technical Stack
-
-- Python 3.14+
-- `openpyxl` (Excel reading)
-- `typer` (CLI)
-- Standard library `csv`, `logging`, `pathlib`
-
----
-
-## 11. Testing Scope
-
-`pytest` coverage includes:
-
-- Sheet-name normalization/matching
-- Header detection rules
-- Footer detection rules and false-positive protection
-- Structural-collapse stopping
-- Empty-column dropping
-- CSV writing behavior and validation errors
-
----
-
-## 12. CI Automation Contract
-
-Current repository automation (`.github/workflows/process.yml`) is:
-
-- Trigger: push to `main`
-- Path filter: `input/**.xlsx`
-- Environment: `ubuntu-latest` with Python 3.14
-- Processing step: iterates over `input/*.xlsx` and runs
-   `medz-extractor <input.xlsx> --out output/<YYYY-MM>/`
-- Output commit: commits updated `output/**/*.csv`
+- Prefer simple Python and standard-library code.
+- Keep `openpyxl` as the only runtime dependency.
+- Add tests for every new workbook layout edge case.
+- Preserve the CSV contract unless a breaking change is explicitly documented.
+- Keep non-extraction concerns out of this repository.
+- License the project under GNU AGPLv3 or later so improvements remain open
+  when redistributed or used as part of a network service.

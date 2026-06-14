@@ -10,7 +10,7 @@ compare every output byte-for-byte against the golden files.
 
 Adding a new fixture:
     1. Place the ``.xlsx`` under ``tests/fixtures/``.
-    2. Run ``medz-extractor <file> --out tests/golden/<name>/``
+    2. Run ``python3 scripts/extract_medz.py tests/fixtures tests/golden``
        to generate golden CSVs.
     3. Review the golden CSVs for correctness.
     4. Commit both the fixture and the golden CSVs.
@@ -26,10 +26,12 @@ from typing import List, Tuple
 import pytest
 from openpyxl import load_workbook
 
-from medz_extractor.parser import parse_sheet
-from medz_extractor.schema import drop_empty_columns
-from medz_extractor.sheet_detector import detect_sheets
-from medz_extractor.writer import write_csv
+from scripts.extract_medz import (
+    detect_sheets,
+    drop_empty_columns,
+    parse_sheet,
+    write_csv,
+)
 
 # ── Path constants ──────────────────────────────────────────────
 
@@ -85,8 +87,8 @@ def _run_pipeline(
 ) -> List[Path]:
     """Execute the full extraction pipeline on *xlsx_path*.
 
-    Mirrors the logic of the ``process`` CLI command without
-    Typer so that tests do not depend on CLI wiring.
+    Mirrors the logic of the script pipeline without depending on
+    argument parsing or filesystem promotion.
 
     Returns:
         List of written CSV paths.
